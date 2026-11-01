@@ -8,13 +8,17 @@ Aplicación para que una pareja lleve sus gastos compartidos. Construida con Nex
 - **Tres apartados de gastos**, cada uno con su formulario y su lista:
   - **Gastos fijos**: alquiler, internet, agua y luz.
   - **Compras de comida**.
-  - **Ocio**.
+  - **Ocio**: en pareja o individual (de una sola persona).
 - **Reparto**:
   - El **alquiler** se reparte en proporción a los sueldos. Ejemplo: 2.400 € y 1.600 € → 60 % / 40 %.
     El porcentaje se guarda en cada alquiler registrado, así que cambiar un sueldo no altera los meses anteriores.
+  - El **ocio individual** corre entero a cargo de quien lo disfruta; si lo paga la otra persona, queda como deuda.
   - Todos los demás gastos se reparten **a partes iguales**.
 - **¿Quién debe a quién?**: saldo del mes, lo que ha pagado cada persona frente a lo que le corresponde y el desglose por apartado.
-- Exportación del mes a CSV (compatible con Excel).
+- **Exportar e importar Excel (.xlsx)**:
+  - «Exportar Excel» descarga los gastos del mes (o una plantilla vacía si no hay), con desplegables y una hoja de instrucciones.
+  - «Importar Excel» lee el archivo, rellena automáticamente fecha, apartado, concepto, importe, quién pagó y para quién, y lo guarda en la base de datos.
+    Las filas con errores se indican y no se importan; los gastos que ya existen se omiten, así que se puede reimportar sin duplicar.
 
 La aplicación no tiene inicio de sesión: cualquiera que conozca la URL puede verla y modificarla.
 
@@ -29,7 +33,7 @@ Solo se conservan el mes en curso y el anterior. **El día 15 de cada mes se eli
 
 El borrado lo hace una tarea programada diaria de Vercel (`vercel.json`, a las 04:00 UTC) que llama a `/api/cron/purge`. Como respaldo, la limpieza también se aplica al abrir la aplicación. Las fechas se calculan en la zona horaria `Europe/Madrid`.
 
-Si necesitas conservar el histórico, exporta el CSV de cada mes antes del día 15.
+Si necesitas conservar el histórico, exporta el Excel de cada mes antes del día 15.
 
 ## Variables de entorno
 

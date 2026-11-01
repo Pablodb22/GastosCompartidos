@@ -4,7 +4,17 @@ import { Logo } from "@/components/logo";
 import { CoupleForm } from "@/components/couple-form";
 import { ExpenseForm } from "@/components/expense-form";
 import { DeleteButton } from "@/components/delete-button";
-import { formatEUR, formatPct, rentPercent, summarize, type Expense, type MonthSummary, type Totals } from "@/lib/calc";
+import { ImportButton } from "@/components/import-button";
+import {
+  beneficiaryOf,
+  formatEUR,
+  formatPct,
+  rentPercent,
+  summarize,
+  type Expense,
+  type MonthSummary,
+  type Totals,
+} from "@/lib/calc";
 import { SECTIONS, type PersonId, type Section } from "@/lib/config";
 import { getCouple, listExpenses, purgeExpired, type Couple } from "@/lib/expenses";
 import { formatDate, formatMonth, formatShortMonth, getRetention, lastDayOfMonth, type Retention } from "@/lib/periods";
@@ -178,11 +188,15 @@ function MonthBar({ retention, month, hasExpenses }: { retention: Retention; mon
             );
           })}
         </nav>
-        {hasExpenses && (
-          <a href={`/api/export?mes=${month}`} className="btn-secondary whitespace-nowrap" download>
-            📥 Exportar CSV
-          </a>
-        )}
+        <a
+          href={`/api/export?mes=${month}`}
+          className="btn-secondary whitespace-nowrap"
+          download
+          title={hasExpenses ? "Descargar los gastos de este mes" : "Descargar una plantilla vacía para rellenar"}
+        >
+          📤 {hasExpenses ? "Exportar Excel" : "Plantilla Excel"}
+        </a>
+        <ImportButton />
       </div>
       <p className="flex w-fit items-center gap-2 rounded-full bg-amber-100 px-3 py-1.5 text-xs font-bold text-amber-800">
         <span aria-hidden="true">⏳</span>
@@ -411,7 +425,13 @@ function SectionCard({
               : `El alquiler se reparte según los sueldos (${names[1]} ${formatPct(rentPct)} · ${names[2]} ${formatPct(100 - rentPct)}). Internet, agua y luz, a partes iguales.`}
           </p>
         )}
-        {section !== "fijos" && <p className="mt-3 text-xs font-semibold text-slate-500">⚖️ Se reparte a partes iguales.</p>}
+        {section === "comida" && <p className="mt-3 text-xs font-semibold text-slate-500">⚖️ Se reparte a partes iguales.</p>}
+        {section === "ocio" && (
+          <p className="mt-3 text-xs font-semibold text-slate-500">
+            ⚖️ El ocio en pareja se reparte a partes iguales. El individual corre entero a cargo de quien lo disfruta: si lo
+            paga la otra persona, queda como deuda.
+          </p>
+        )}
       </div>
 
       {expenses.length === 0 ? (
@@ -447,7 +467,15 @@ function SectionCard({
 }
 
 function SplitText({ expense, names }: { expense: Expense; names: Names }) {
-  if (expense.porcentaje1 === 50) return <>50/50</>;
+  const who = beneficiaryOf(expense);
+  if (who !== "pareja") {
+    return (
+      <span className={`rounded-full px-1.5 py-0.5 ${who === 1 ? "bg-violet-100 text-violet-700" : "bg-pink-100 text-pink-700"}`}>
+        🙋 Solo {names[who]}
+      </span>
+    );
+  }
+  if (expense.porcentaje1 === 50) return <>{expense.seccion === "ocio" ? "💑 En pareja" : "50/50"}</>;
   const share1 = (expense.importe * expense.porcentaje1) / 100;
   return (
     <span title={`${names[1]} ${formatPct(expense.porcentaje1)} · ${names[2]} ${formatPct(100 - expense.porcentaje1)}`}>

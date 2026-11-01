@@ -1,7 +1,8 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  // ExcelJS usa módulos de Node: se carga tal cual en el servidor, sin empaquetar.
+  serverExternalPackages: ["exceljs"],
   cacheComponents: true,
   partialPrefetching: true,
   turbopack: {

@@ -94,6 +94,24 @@ export function ExpenseForm({ section, names, defaultDate, minDate, maxDate }: P
         </div>
       </div>
 
+      {section === "ocio" && (
+        <fieldset>
+          <legend className="label">¿Para quién es?</legend>
+          <div className="grid grid-cols-3 gap-2">
+            {(["pareja", "1", "2"] as const).map((o) => (
+              <label
+                key={o}
+                className="flex cursor-pointer items-center justify-center gap-1.5 rounded-full border-2 border-amber-200 bg-white px-2 py-2 text-sm font-bold text-slate-600 transition hover:border-amber-300 has-checked:border-amber-400 has-checked:bg-amber-400 has-checked:text-white has-checked:shadow-md has-focus-visible:ring-4 has-focus-visible:ring-amber-100"
+              >
+                <input type="radio" name="para" value={o} defaultChecked={(v?.para ?? "pareja") === o} className="sr-only" />
+                <span aria-hidden="true">{o === "pareja" ? "💑" : "🙋"}</span>
+                <span className="truncate">{o === "pareja" ? "Pareja" : names[Number(o) as PersonId]}</span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
+      )}
+
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
         <fieldset className="flex-1">
           <legend className="label">Pagado por</legend>

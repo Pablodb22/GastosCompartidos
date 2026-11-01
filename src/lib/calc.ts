@@ -26,6 +26,18 @@ export type MonthSummary = {
   bySection: Record<Section, Totals>;
 };
 
+/** Para quién es un gasto: de la pareja (se reparte) o individual de una persona. */
+export type Beneficiary = "pareja" | PersonId;
+
+/** El ocio puede ser individual: el 100 % corresponde a una sola persona. */
+export function beneficiaryOf(e: Pick<Expense, "seccion" | "porcentaje1">): Beneficiary {
+  if (e.seccion === "ocio") {
+    if (e.porcentaje1 >= 100) return 1;
+    if (e.porcentaje1 <= 0) return 2;
+  }
+  return "pareja";
+}
+
 const round2 = (n: number) => Math.round(n * 100) / 100;
 
 const empty = (): Totals => ({ total: 0, count: 0, paidBy: { 1: 0, 2: 0 }, costFor: { 1: 0, 2: 0 }, balance: 0 });
