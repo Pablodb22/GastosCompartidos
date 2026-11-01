@@ -15,7 +15,7 @@ export const SECTIONS: { id: Section; title: string; description: string }[] = [
   {
     id: "ocio",
     title: "Ocio",
-    description: "Restaurantes, planes, viajes y tiempo libre.",
+    description: "Planes en pareja o caprichos individuales.",
   },
 ];
 

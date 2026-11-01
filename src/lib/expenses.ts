@@ -88,6 +88,40 @@ export async function insertExpense(e: Omit<Expense, "id">): Promise<void> {
   `;
 }
 
+/** Gastos entre dos fechas (incluidas), para detectar duplicados al importar. */
+export async function listExpensesBetween(from: string, to: string): Promise<Expense[]> {
+  const sql = await db();
+  const rows = (await sql`
+    SELECT id, to_char(fecha, 'YYYY-MM-DD') AS fecha, seccion, concepto,
+           importe::float8 AS importe, pagado_por, porcentaje_1::float8 AS porcentaje_1
+    FROM gastos
+    WHERE fecha >= ${from}::date AND fecha <= ${to}::date
+  `) as Row[];
+  return rows.map(toExpense);
+}
+
+/** Inserta varios gastos en una sola sentencia (todo o nada). */
+export async function insertExpenses(list: Omit<Expense, "id">[]): Promise<void> {
+  if (list.length === 0) return;
+  const sql = await db();
+  const payload = JSON.stringify(
+    list.map((e) => ({
+      fecha: e.fecha,
+      seccion: e.seccion,
+      concepto: e.concepto,
+      importe: e.importe,
+      pagado_por: e.pagadoPor,
+      porcentaje_1: e.porcentaje1,
+    })),
+  );
+  await sql`
+    INSERT INTO gastos (fecha, seccion, concepto, importe, pagado_por, porcentaje_1)
+    SELECT fecha, seccion, concepto, importe, pagado_por, porcentaje_1
+    FROM jsonb_to_recordset(${payload}::jsonb)
+      AS x(fecha date, seccion text, concepto text, importe numeric, pagado_por smallint, porcentaje_1 numeric)
+  `;
+}
+
 export async function removeExpense(id: number): Promise<void> {
   const sql = await db();
   await sql`DELETE FROM gastos WHERE id = ${id}`;
