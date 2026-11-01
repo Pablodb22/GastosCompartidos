@@ -101,7 +101,11 @@ export function ExpenseForm({ section, names, defaultDate, minDate, maxDate }: P
             {([1, 2] as const).map((p) => (
               <label
                 key={p}
-                className="flex cursor-pointer items-center justify-center rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition has-checked:border-brand-600 has-checked:bg-brand-50 has-checked:text-brand-700 has-focus-visible:ring-3 has-focus-visible:ring-brand-100"
+                className={`flex cursor-pointer items-center justify-center rounded-full border-2 border-violet-100 bg-white px-3 py-2 text-sm font-bold text-slate-600 transition hover:border-violet-200 has-checked:text-white has-checked:shadow-md has-focus-visible:ring-4 has-focus-visible:ring-brand-100 ${
+                  p === 1
+                    ? "has-checked:border-violet-500 has-checked:bg-violet-500"
+                    : "has-checked:border-pink-500 has-checked:bg-pink-500"
+                }`}
               >
                 <input
                   type="radio"
@@ -116,18 +120,18 @@ export function ExpenseForm({ section, names, defaultDate, minDate, maxDate }: P
           </div>
         </fieldset>
         <button type="submit" disabled={pending} className="btn-primary sm:w-40">
-          {pending ? "Guardando…" : "Añadir gasto"}
+          {pending ? "Guardando…" : "＋ Añadir gasto"}
         </button>
       </div>
 
       {state.error && (
-        <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
-          {state.error}
+        <p role="alert" className="rounded-2xl bg-red-50 px-3 py-2 text-sm font-bold text-red-600">
+          😬 {state.error}
         </p>
       )}
       {state.ok && (
-        <p role="status" className="rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
-          Gasto añadido.
+        <p role="status" className="rounded-2xl bg-emerald-50 px-3 py-2 text-sm font-bold text-emerald-700">
+          ✨ ¡Gasto añadido!
         </p>
       )}
     </form>
