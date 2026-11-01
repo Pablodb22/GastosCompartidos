@@ -11,7 +11,7 @@ function Submit({ label }: { label: string }) {
       disabled={pending}
       aria-label={`Eliminar ${label}`}
       title="Eliminar"
-      className="rounded-md p-1.5 text-slate-400 transition hover:bg-red-50 hover:text-red-600 disabled:opacity-50"
+      className="rounded-full p-2 text-slate-300 transition hover:rotate-12 hover:bg-red-50 hover:text-red-500 disabled:opacity-50"
     >
       <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4" aria-hidden="true">
         <path
