@@ -1,4 +1,4 @@
-import { rentPercent, type Beneficiary, type Expense } from "./calc";
+import { owedAmount, rentPercent, type Beneficiary, type Expense } from "./calc";
 import { FIXED_TYPES, RENT, type FixedType, type PersonId, type Section } from "./config";
 import { formatDate, isValidDate, type Retention } from "./periods";
 
@@ -9,6 +9,8 @@ export type ExpenseInput = {
   importe: number;
   pagadoPor: PersonId;
   para: Beneficiary;
+  /** Si la otra persona ya ha devuelto su parte. Por defecto, pendiente. */
+  saldado?: boolean;
 };
 
 export type BuildResult = { expense: Omit<Expense, "id"> } | { error: string };
@@ -62,14 +64,18 @@ export function buildExpense(
     porcentaje1 = 0;
   }
 
+  const importe = Math.round(input.importe * 100) / 100;
+  // Un gasto sin deuda (p. ej., ocio individual pagado por su dueño) nunca queda «pendiente».
+  const hasDebt = owedAmount({ importe, porcentaje1, pagadoPor: input.pagadoPor }) > 0;
   return {
     expense: {
       fecha: input.fecha,
       seccion: input.seccion,
       concepto,
-      importe: Math.round(input.importe * 100) / 100,
+      importe,
       pagadoPor: input.pagadoPor,
       porcentaje1,
+      saldado: hasDebt && (input.saldado ?? false),
     },
   };
 }

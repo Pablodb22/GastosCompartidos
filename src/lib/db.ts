@@ -25,6 +25,9 @@ const SCHEMA = [
      creado_en     TIMESTAMPTZ NOT NULL DEFAULT now()
    )`,
   `CREATE INDEX IF NOT EXISTS gastos_fecha_idx ON gastos (fecha)`,
+  // Si la otra persona ya ha devuelto su parte. Pagar no borra el gasto: solo lo marca.
+  `ALTER TABLE gastos ADD COLUMN IF NOT EXISTS saldado BOOLEAN NOT NULL DEFAULT false`,
+  `ALTER TABLE gastos ADD COLUMN IF NOT EXISTS saldado_en TIMESTAMPTZ`,
 ];
 
 /** Devuelve el cliente SQL y garantiza que las tablas existen (una vez por instancia). */

@@ -5,9 +5,11 @@ import { CoupleForm } from "@/components/couple-form";
 import { ExpenseForm } from "@/components/expense-form";
 import { DeleteButton } from "@/components/delete-button";
 import { ImportButton } from "@/components/import-button";
+import { SettleAllButton, SettleButton } from "@/components/settle-button";
 import {
   beneficiaryOf,
   formatEUR,
+  owedAmount,
   formatPct,
   rentPercent,
   summarize,
@@ -265,11 +267,14 @@ function DebtCard({ summary, names, month }: { summary: MonthSummary; names: Nam
             <p className="mt-1 text-sm font-semibold text-white/85">
               <span className="font-extrabold text-white">{debt.debtor}</span> debe a{" "}
               <span className="font-extrabold text-white">{debt.creditor}</span>
+              <span className="ml-1.5 rounded-full bg-white/20 px-2 py-0.5 text-xs font-extrabold">⏳ pendiente</span>
             </p>
           </>
         ) : (
           <>
-            <p className="font-display mt-2 text-3xl font-semibold tracking-tight">¡Estáis en paz!</p>
+            <p className="font-display mt-2 text-3xl font-semibold tracking-tight">
+              {summary.overall.settled > 0 ? "¡Todo pagado!" : "¡Estáis en paz!"}
+            </p>
             <p className="mt-1 text-sm font-semibold text-white/85">No hay importes pendientes en {formatMonth(month).toLowerCase()}.</p>
           </>
         )}
@@ -312,6 +317,20 @@ function DebtCard({ summary, names, month }: { summary: MonthSummary; names: Nam
           );
         })}
       </ul>
+
+      {(summary.overall.settled > 0 || summary.overall.pendingCount > 0) && (
+        <div className="space-y-3 border-t-2 border-violet-50 px-5 py-4">
+          {summary.overall.settled > 0 && (
+            <p className="flex items-center justify-between gap-3 text-xs font-semibold text-slate-500">
+              <span>✅ Ya pagado este mes</span>
+              <span className="font-extrabold tabular-nums text-emerald-600">{formatEUR(summary.overall.settled)}</span>
+            </p>
+          )}
+          {summary.overall.pendingCount > 0 && (
+            <SettleAllButton month={month} label={formatMonth(month).toLowerCase()} />
+          )}
+        </div>
+      )}
     </section>
   );
 }
@@ -456,13 +475,33 @@ function SectionCard({
                   <SplitText expense={e} names={names} />
                 </p>
               </div>
-              <span className="whitespace-nowrap text-sm font-extrabold tabular-nums text-slate-800">{formatEUR(e.importe)}</span>
+              <div className="flex flex-col items-end gap-1">
+                <span className="whitespace-nowrap text-sm font-extrabold tabular-nums text-slate-800">{formatEUR(e.importe)}</span>
+                <SettleChip expense={e} names={names} />
+              </div>
               <DeleteButton id={e.id} label={e.concepto} />
             </li>
           ))}
         </ul>
       )}
     </section>
+  );
+}
+
+/** Botón pendiente/pagado. Solo aparece si el gasto genera deuda para la otra persona. */
+function SettleChip({ expense, names }: { expense: Expense; names: Names }) {
+  const amount = owedAmount(expense);
+  if (amount <= 0) return null;
+  const creditor = expense.pagadoPor;
+  const debtor: PersonId = creditor === 1 ? 2 : 1;
+  return (
+    <SettleButton
+      id={expense.id}
+      saldado={expense.saldado}
+      debtor={names[debtor]}
+      creditor={names[creditor]}
+      amount={formatEUR(amount)}
+    />
   );
 }
 

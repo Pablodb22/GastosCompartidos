@@ -15,9 +15,12 @@ Aplicación para que una pareja lleve sus gastos compartidos. Construida con Nex
   - El **ocio individual** corre entero a cargo de quien lo disfruta; si lo paga la otra persona, queda como deuda.
   - Todos los demás gastos se reparten **a partes iguales**.
 - **¿Quién debe a quién?**: saldo del mes, lo que ha pagado cada persona frente a lo que le corresponde y el desglose por apartado.
+- **Pendiente / pagado**: cada gasto que genera deuda aparece como «⏳ Pendiente». Cuando la otra persona devuelve su parte,
+  se pulsa y pasa a «✅ Pagado» (se puede deshacer). Los gastos pagados **no se borran**: siguen en la lista y en los totales,
+  pero dejan de contar en «¿Quién debe a quién?». También hay un botón para marcar todo el mes como pagado.
 - **Exportar e importar Excel (.xlsx)**:
   - «Exportar Excel» descarga los gastos del mes (o una plantilla vacía si no hay), con desplegables y una hoja de instrucciones.
-  - «Importar Excel» lee el archivo, rellena automáticamente fecha, apartado, concepto, importe, quién pagó y para quién, y lo guarda en la base de datos.
+  - «Importar Excel» lee el archivo, rellena automáticamente fecha, apartado, concepto, importe, quién pagó, para quién y estado (pendiente/pagado), y lo guarda en la base de datos.
     Las filas con errores se indican y no se importan; los gastos que ya existen se omiten, así que se puede reimportar sin duplicar.
 
 La aplicación no tiene inicio de sesión: cualquiera que conozca la URL puede verla y modificarla.

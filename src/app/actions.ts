@@ -12,8 +12,10 @@ import {
   purgeExpired,
   removeExpense,
   saveCouple,
+  setSettled,
+  settleMonth,
 } from "@/lib/expenses";
-import { getRetention } from "@/lib/periods";
+import { getRetention, isValidMonthKey } from "@/lib/periods";
 import { buildExpense } from "@/lib/rules";
 
 // ---------- Pareja ----------
@@ -103,6 +105,8 @@ export type ImportState = {
   error?: string;
   imported?: number;
   duplicates?: number;
+  /** Gastos que ya existían como pendientes y el archivo marca como pagados. */
+  settled?: number;
   rowErrors?: string[];
   submission?: number;
 };
@@ -130,12 +134,13 @@ export async function importExpenses(_prev: ImportState, formData: FormData): Pr
   const retention = getRetention();
   await purgeExpired(retention);
 
-  // Cuenta los gastos que ya existen para no duplicarlos al reimportar.
-  const existing = new Map<string, number>();
+  // Agrupa los gastos que ya existen para no duplicarlos al reimportar.
+  const existing = new Map<string, Expense[]>();
   for (const e of await listExpensesBetween(retention.cutoffDate, retention.maxDate)) {
     const k = expenseKey(e);
-    existing.set(k, (existing.get(k) ?? 0) + 1);
+    existing.set(k, [...(existing.get(k) ?? []), e]);
   }
+  const toSettle: number[] = [];
 
   const toInsert: Omit<Expense, "id">[] = [];
   const rowErrors: string[] = [];
@@ -150,25 +155,48 @@ export async function importExpenses(_prev: ImportState, formData: FormData): Pr
       rowErrors.push(`Fila ${p.row}: ${result.error}`);
       continue;
     }
-    const k = expenseKey(result.expense);
-    const seen = existing.get(k) ?? 0;
-    if (seen > 0) {
-      existing.set(k, seen - 1);
-      duplicates++;
+    const same = existing.get(expenseKey(result.expense));
+    if (same?.length) {
+      // Ya existe: no se duplica. Si el archivo dice «Pagado» y estaba pendiente, se marca como pagado.
+      const match = (result.expense.saldado && same.find((e) => !e.saldado)) || same[0];
+      same.splice(same.indexOf(match), 1);
+      if (result.expense.saldado && !match.saldado) toSettle.push(match.id);
+      else duplicates++;
       continue;
     }
     toInsert.push(result.expense);
   }
 
   await insertExpenses(toInsert);
-  if (toInsert.length > 0) refresh();
+  for (const id of toSettle) await setSettled(id, true);
+  if (toInsert.length > 0 || toSettle.length > 0) refresh();
 
   return done({
-    ok: toInsert.length > 0 || duplicates > 0,
+    ok: toInsert.length > 0 || duplicates > 0 || toSettle.length > 0,
     imported: toInsert.length,
     duplicates,
+    settled: toSettle.length,
     rowErrors,
   });
+}
+
+// ---------- Pagado / pendiente ----------
+
+/** Marca un gasto como pagado o pendiente. El gasto nunca se borra. */
+export async function toggleSettled(formData: FormData): Promise<void> {
+  const id = Number(formData.get("id"));
+  const saldado = formData.get("saldado") === "true";
+  if (!Number.isInteger(id) || id <= 0) return;
+  await setSettled(id, saldado);
+  refresh();
+}
+
+/** Marca como pagados todos los gastos pendientes del mes. */
+export async function settleAll(formData: FormData): Promise<void> {
+  const month = formData.get("mes");
+  if (!isValidMonthKey(month) || !getRetention().months.includes(month)) return;
+  await settleMonth(month);
+  refresh();
 }
 
 export async function deleteExpense(formData: FormData): Promise<void> {

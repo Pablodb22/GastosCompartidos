@@ -48,7 +48,7 @@ export function ImportButton() {
         >
           <div className="flex items-start gap-3">
             <span className="text-2xl" aria-hidden="true">
-              {state.error ? "😬" : state.imported ? "🎉" : state.rowErrors?.length ? "🤔" : "👌"}
+              {state.error ? "😬" : state.imported || state.settled ? "🎉" : state.rowErrors?.length ? "🤔" : "👌"}
             </span>
             <div className="min-w-0 flex-1 text-sm">
               {state.error ? (
@@ -58,8 +58,15 @@ export function ImportButton() {
                   <p className="font-display text-lg font-semibold text-violet-950">
                     {state.imported
                       ? `¡${plural(state.imported, "gasto importado", "gastos importados")}!`
-                      : "No se ha importado ningún gasto"}
+                      : state.settled
+                        ? "¡Importación hecha!"
+                        : "No se ha importado ningún gasto"}
                   </p>
+                  {!!state.settled && (
+                    <p className="font-semibold text-emerald-700">
+                      ✅ {plural(state.settled, "gasto marcado", "gastos marcados")} como pagado.
+                    </p>
+                  )}
                   {!!state.duplicates && (
                     <p className="font-semibold text-slate-500">
                       {plural(state.duplicates, "gasto ya existía y se ha", "gastos ya existían y se han")} omitido.
