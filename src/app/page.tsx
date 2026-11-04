@@ -5,6 +5,7 @@ import { CoupleForm } from "@/components/couple-form";
 import { ExpenseForm } from "@/components/expense-form";
 import { DeleteButton } from "@/components/delete-button";
 import { ImportButton } from "@/components/import-button";
+import { TicketScanner } from "@/components/ticket-scanner";
 import { SettleAllButton, SettleButton } from "@/components/settle-button";
 import {
   beneficiaryOf,
@@ -93,7 +94,7 @@ async function Dashboard({ searchParams }: { searchParams: PageProps<"/">["searc
 
   return (
     <div className="space-y-6">
-      <MonthBar retention={retention} month={month} hasExpenses={expenses.length > 0} />
+      <MonthBar retention={retention} month={month} hasExpenses={expenses.length > 0} names={names} defaultDate={defaultDate} />
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <Stat label="Total del mes" emoji="💸" value={summary.overall.total} count={summary.overall.count} highlight />
@@ -167,7 +168,19 @@ function Onboarding({ couple }: { couple: Couple }) {
 
 // ---------- Selector de mes ----------
 
-function MonthBar({ retention, month, hasExpenses }: { retention: Retention; month: string; hasExpenses: boolean }) {
+function MonthBar({
+  retention,
+  month,
+  hasExpenses,
+  names,
+  defaultDate,
+}: {
+  retention: Retention;
+  month: string;
+  hasExpenses: boolean;
+  names: Names;
+  defaultDate: string;
+}) {
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <div className="flex flex-wrap items-center gap-3">
@@ -190,6 +203,7 @@ function MonthBar({ retention, month, hasExpenses }: { retention: Retention; mon
             );
           })}
         </nav>
+        <TicketScanner names={names} today={defaultDate} minDate={retention.cutoffDate} maxDate={retention.maxDate} />
         <a
           href={`/api/export?mes=${month}`}
           className="btn-secondary whitespace-nowrap"
