@@ -55,6 +55,7 @@ type Row = {
   pagado_por: number;
   porcentaje_1: number | string;
   saldado: boolean;
+  productos?: { nombre: string; importe: number | string }[] | null;
 };
 
 const toExpense = (r: Row): Expense => ({
@@ -66,6 +67,9 @@ const toExpense = (r: Row): Expense => ({
   pagadoPor: r.pagado_por as PersonId,
   porcentaje1: Number(r.porcentaje_1),
   saldado: Boolean(r.saldado),
+  ...(r.productos?.length
+    ? { productos: r.productos.map((p) => ({ nombre: p.nombre, importe: Number(p.importe) })) }
+    : {}),
 });
 
 export async function listExpenses(month: MonthKey): Promise<Expense[]> {
@@ -74,8 +78,10 @@ export async function listExpenses(month: MonthKey): Promise<Expense[]> {
   const to = `${shiftMonth(month, 1)}-01`;
   const rows = (await sql`
     SELECT id, to_char(fecha, 'YYYY-MM-DD') AS fecha, seccion, concepto,
-           importe::float8 AS importe, pagado_por, porcentaje_1::float8 AS porcentaje_1, saldado
-    FROM gastos
+           importe::float8 AS importe, pagado_por, porcentaje_1::float8 AS porcentaje_1, saldado,
+           (SELECT json_agg(json_build_object('nombre', p.nombre, 'importe', p.importe::float8) ORDER BY p.orden)
+              FROM gasto_productos p WHERE p.gasto_id = g.id) AS productos
+    FROM gastos g
     WHERE fecha >= ${from}::date AND fecha < ${to}::date
     ORDER BY fecha DESC, id DESC
   `) as Row[];
@@ -84,10 +90,26 @@ export async function listExpenses(month: MonthKey): Promise<Expense[]> {
 
 export async function insertExpense(e: Omit<Expense, "id">): Promise<void> {
   const sql = await db();
+  if (!e.productos?.length) {
+    await sql`
+      INSERT INTO gastos (fecha, seccion, concepto, importe, pagado_por, porcentaje_1, saldado, saldado_en)
+      VALUES (${e.fecha}::date, ${e.seccion}, ${e.concepto}, ${e.importe}, ${e.pagadoPor}, ${e.porcentaje1},
+              ${e.saldado}, CASE WHEN ${e.saldado} THEN now() END)
+    `;
+    return;
+  }
+  // Gasto y productos en una sola sentencia: o se guarda todo o nada.
+  const productos = JSON.stringify(e.productos.map((p, i) => ({ orden: i + 1, nombre: p.nombre, importe: p.importe })));
   await sql`
-    INSERT INTO gastos (fecha, seccion, concepto, importe, pagado_por, porcentaje_1, saldado, saldado_en)
-    VALUES (${e.fecha}::date, ${e.seccion}, ${e.concepto}, ${e.importe}, ${e.pagadoPor}, ${e.porcentaje1},
-            ${e.saldado}, CASE WHEN ${e.saldado} THEN now() END)
+    WITH g AS (
+      INSERT INTO gastos (fecha, seccion, concepto, importe, pagado_por, porcentaje_1, saldado, saldado_en)
+      VALUES (${e.fecha}::date, ${e.seccion}, ${e.concepto}, ${e.importe}, ${e.pagadoPor}, ${e.porcentaje1},
+              ${e.saldado}, CASE WHEN ${e.saldado} THEN now() END)
+      RETURNING id
+    )
+    INSERT INTO gasto_productos (gasto_id, orden, nombre, importe)
+    SELECT g.id, x.orden, x.nombre, x.importe
+    FROM g, jsonb_to_recordset(${productos}::jsonb) AS x(orden smallint, nombre text, importe numeric)
   `;
 }
 

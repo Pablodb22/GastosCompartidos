@@ -11,7 +11,11 @@ export type Expense = {
   porcentaje1: number;
   /** La otra persona ya ha devuelto su parte. El gasto se conserva, pero deja de contar como deuda. */
   saldado: boolean;
+  /** Productos del ticket, si el gasto se creó escaneándolo. */
+  productos?: Product[];
 };
+
+export type Product = { nombre: string; importe: number };
 
 export type Totals = {
   total: number;
