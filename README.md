@@ -19,6 +19,14 @@ Aplicación para que una pareja lleve sus gastos compartidos. Construida con Nex
   Revisas el importe (o eliges otro de los que aparecen en el ticket), indicas si es comida u ocio, la descripción,
   quién lo pagó y para quién era, y se guarda. La lectura (OCR con Tesseract.js) se hace en el propio navegador:
   la foto no se sube a ningún sitio y no hace falta ninguna clave. La primera vez descarga unos 6 MB.
+- **📊 Gráficos** (pestaña arriba a la derecha), por mes:
+  - **Una tarjeta por persona**, calculada sobre *su parte* de los gastos: su gasto (comparado con el mes anterior
+    hasta el mismo día), lo que ha pagado de su bolsillo, lo que debe o le deben y su media diaria; barras de en qué se
+    le va el dinero (alquiler, internet, agua, luz, comida, ocio en pareja y ocio individual) frente al mes anterior;
+    línea de cómo crece su gasto día a día; y sus 5 gastos más grandes.
+  - **Una tarjeta de pareja** con los gastos comunes: columnas por mes divididas en fijos, comida y ocio en pareja,
+    quién ha adelantado el dinero común y el desglose del mes.
+  - Cada gráfico tiene avisos al pasar el ratón o el dedo y una vista en tabla.
 - **Pendiente / pagado**: cada gasto que genera deuda aparece como «⏳ Pendiente». Cuando la otra persona devuelve su parte,
   se pulsa y pasa a «✅ Pagado» (se puede deshacer). Los gastos pagados **no se borran**: siguen en la lista y en los totales,
   pero dejan de contar en «¿Quién debe a quién?». También hay un botón para marcar todo el mes como pagado.

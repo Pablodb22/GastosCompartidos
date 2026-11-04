@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import Link from "next/link";
-import { Logo } from "@/components/logo";
+import { AppHeader } from "@/components/app-header";
 import { CoupleForm } from "@/components/couple-form";
 import { ExpenseForm } from "@/components/expense-form";
 import { DeleteButton } from "@/components/delete-button";
@@ -51,19 +51,7 @@ const SECTION_STYLE: Record<Section, { emoji: string; tile: string; chip: string
 export default function Home({ searchParams }: PageProps<"/">) {
   return (
     <>
-      <header>
-        <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 pt-6 pb-2 sm:px-6">
-          <span className="hover-wiggle">
-            <Logo className="wiggle h-12 w-12 drop-shadow-md" />
-          </span>
-          <div>
-            <h1 className="font-display text-gradient text-2xl font-semibold tracking-tight sm:text-3xl">
-              Cuentas en pareja
-            </h1>
-            <p className="text-sm font-semibold text-violet-400">Cuentas claras, amor largo 💜</p>
-          </div>
-        </div>
-      </header>
+      <AppHeader active="cuentas" />
 
       <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:px-6 sm:py-8">
         <Suspense fallback={<DashboardSkeleton />}>
