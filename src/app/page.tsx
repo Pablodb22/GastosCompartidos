@@ -465,7 +465,7 @@ function SectionCard({
       ) : (
         <ul className="space-y-1 p-3">
           {expenses.map((e) => (
-            <li key={e.id} className="flex items-center gap-3 rounded-2xl px-3 py-2.5 transition hover:bg-violet-50/70">
+            <li key={e.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-2xl px-3 py-2.5 transition hover:bg-violet-50/70">
               <span className="w-14 shrink-0 rounded-full bg-violet-50 py-1 text-center text-xs font-bold text-violet-600">
                 {formatDate(e.fecha)}
               </span>
@@ -482,11 +482,42 @@ function SectionCard({
                 <SettleChip expense={e} names={names} />
               </div>
               <DeleteButton id={e.id} label={e.concepto} />
+              {/* Ocupa toda la fila para que los nombres de los productos se lean bien en el móvil. */}
+              {e.productos && <ProductList productos={e.productos} total={e.importe} />}
             </li>
           ))}
         </ul>
       )}
     </section>
+  );
+}
+
+/** Productos de un ticket escaneado, plegados por defecto. */
+function ProductList({ productos, total }: { productos: { nombre: string; importe: number }[]; total: number }) {
+  const sum = Math.round(productos.reduce((a, p) => a + p.importe, 0) * 100) / 100;
+  return (
+    <details className="group basis-full pl-17">
+      <summary className="inline-flex cursor-pointer list-none items-center gap-1 rounded-full bg-violet-50 px-2 py-0.5 text-xs font-bold text-violet-600 hover:bg-violet-100 [&::-webkit-details-marker]:hidden">
+        🧾 {productos.length === 1 ? "1 producto" : `${productos.length} productos`}
+        <span aria-hidden="true" className="transition group-open:rotate-180">
+          ▾
+        </span>
+      </summary>
+      <ul className="mt-1.5 space-y-0.5 rounded-xl bg-slate-50 px-3 py-2 text-xs">
+        {productos.map((p, i) => (
+          <li key={i} className="flex justify-between gap-3">
+            <span className="min-w-0 truncate font-semibold text-slate-600">{p.nombre}</span>
+            <span className="shrink-0 font-bold text-slate-800 tabular-nums">{formatEUR(p.importe)}</span>
+          </li>
+        ))}
+        {Math.abs(sum - total) >= 0.01 && (
+          <li className="mt-1 flex justify-between gap-3 border-t border-slate-200 pt-1 font-semibold text-slate-500">
+            <span>Suma de productos</span>
+            <span className="tabular-nums">{formatEUR(sum)}</span>
+          </li>
+        )}
+      </ul>
+    </details>
   );
 }
 

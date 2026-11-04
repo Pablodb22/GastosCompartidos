@@ -16,7 +16,7 @@ import {
   settleMonth,
 } from "@/lib/expenses";
 import { getRetention, isValidMonthKey } from "@/lib/periods";
-import { buildExpense } from "@/lib/rules";
+import { buildExpense, parseProducts } from "@/lib/rules";
 
 // ---------- Pareja ----------
 
@@ -87,8 +87,12 @@ export async function createExpense(_prev: ExpenseFormState, formData: FormData)
   );
   if ("error" in result) return fail(result.error);
 
+  // Productos del ticket escaneado (opcional).
+  const products = parseProducts(formData.get("productos"));
+  if ("error" in products) return fail(products.error);
+
   await purgeExpired(retention);
-  await insertExpense(result.expense);
+  await insertExpense(products.productos.length ? { ...result.expense, productos: products.productos } : result.expense);
 
   refresh();
   return {

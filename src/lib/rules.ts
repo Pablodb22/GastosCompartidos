@@ -1,4 +1,4 @@
-import { owedAmount, rentPercent, type Beneficiary, type Expense } from "./calc";
+import { owedAmount, rentPercent, type Beneficiary, type Expense, type Product } from "./calc";
 import { FIXED_TYPES, RENT, type FixedType, type PersonId, type Section } from "./config";
 import { formatDate, isValidDate, type Retention } from "./periods";
 
@@ -78,4 +78,33 @@ export function buildExpense(
       saldado: hasDebt && (input.saldado ?? false),
     },
   };
+}
+
+export const MAX_PRODUCTS = 100;
+
+/** Valida la lista de productos de un ticket que llega del formulario (JSON). */
+export function parseProducts(raw: FormDataEntryValue | null): { productos: Product[] } | { error: string } {
+  if (raw === null || raw === "") return { productos: [] };
+  let data: unknown;
+  try {
+    data = JSON.parse(String(raw));
+  } catch {
+    return { error: "La lista de productos no es válida." };
+  }
+  if (!Array.isArray(data)) return { error: "La lista de productos no es válida." };
+  if (data.length > MAX_PRODUCTS) return { error: `Como máximo ${MAX_PRODUCTS} productos por ticket.` };
+
+  const productos: Product[] = [];
+  for (const [i, item] of data.entries()) {
+    const n = i + 1;
+    const nombre = typeof item?.nombre === "string" ? item.nombre.trim() : "";
+    const importe = typeof item?.importe === "number" ? Math.round(item.importe * 100) / 100 : NaN;
+    if (!nombre) return { error: `Producto ${n}: falta el nombre.` };
+    if (nombre.length > 80) return { error: `Producto ${n}: el nombre no puede superar 80 caracteres.` };
+    if (!Number.isFinite(importe) || importe <= 0 || importe >= 100_000) {
+      return { error: `Producto ${n} («${nombre.slice(0, 30)}»): el precio no es válido.` };
+    }
+    productos.push({ nombre, importe });
+  }
+  return { productos };
 }

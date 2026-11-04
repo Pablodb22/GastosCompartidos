@@ -17,7 +17,11 @@ export type ReceiptGuess = {
   merchant: string | null;
   /** Apartado sugerido según el comercio y las palabras del ticket. */
   section: "comida" | "ocio" | null;
+  /** Productos leídos (nombre y precio de la línea). Pueden faltar o venir mal: se revisan a mano. */
+  items: ReceiptItem[];
 };
+
+export type ReceiptItem = { name: string; price: number };
 
 const strip = (s: string) =>
   s
@@ -95,6 +99,105 @@ function findTotal(lines: string[]): { total: number | null; candidates: number[
   return { total, candidates: candidates.slice(0, 6) };
 }
 
+// ---------- Productos ----------
+
+// Importe al final de la línea, con posibles restos: "€", código de IVA ("A", "B"…) o "*".
+const TRAILING_AMOUNT = /(\d{1,3}(?:[.\s]\d{3})+|\d{1,5})\s?[,.]\s?(\d{2})\s*(?:€|eur|[a-d*])?\s*$/i;
+// Líneas que nunca son un producto.
+const NOT_ITEM =
+  /\bnif\b|\bcif\b|\btel\b|telefono|factura|ticket|fecha|\bhora\b|\bop\b|cajer|atendid|\bmesa\b|comensal|c\/|calle|avda|www|http|descuento|\bdto\b|ahorro|promo|oferta aplicada|cupon|\biva\b|\bbase\b|cuota|redondeo/;
+// Fin de la lista de productos: el subtotal, el total o el pago.
+const ITEMS_END = /sub\s*-?\s*t[o0]ta|t[o0]ta[l1i]|a\s*pagar|importe\s*total/;
+// Restos de una línea de peso o precio unitario ("0,850 kg x 2,49 €/kg").
+const UNIT_JUNK = /\d+[.,]\d{1,3}\s*(kg|g|l|ud|uds|u)\b|€?\s*\/\s*(kg|ud|l)\b|\bx\b|×|@/gi;
+
+function cleanName(raw: string): string {
+  const name = raw
+    .replace(AMOUNT, " ")
+    .replace(UNIT_JUNK, " ")
+    .replace(/[|_=~*#<>{}\[\]]+/g, " ")
+    .replace(/^[\s.,:;\-–—]+|[\s.,:;\-–—€]+$/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
+  return (name.charAt(0).toUpperCase() + name.slice(1)).slice(0, 80);
+}
+
+// "0,850 kg x 2,49 €/kg": peso y precio por kilo, para calcular el importe si el OCR lo lee mal.
+const WEIGHT = /(\d+[.,]\d{1,3})\s*kg\s*[x×*]?\s*(\d+[.,]\d{2})\s*€?\s*\/\s*kg/i;
+// El OCR a veces se come la coma: "CAJA GALLETAS 210" → 2,10 €.
+const CENTS_NO_COMMA = /\s(\d{3,4})\s*$/;
+// …pero no si el número es una cantidad con unidad ("250 g", "1000 ml").
+const UNIT_AFTER_NUMBER = /\d\s*(g|gr|kg|ml|cl|l|uds?|u)\s*$/i;
+
+const num = (s: string) => Number(s.replace(",", "."));
+
+const hasWords = (s: string) => /[a-záéíóúüñ]{3,}/i.test(s.replace(UNIT_JUNK, " "));
+
+/**
+ * Busca los productos: líneas antes del total que terminan en un importe.
+ * Entiende cantidades ("2 PAN BARRA 0,60 1,20" → «2 × Pan barra», 1,20 €)
+ * y productos a peso en dos líneas ("TOMATE" / "0,850 kg x 2,49 €/kg 2,12").
+ */
+function findItems(lines: string[]): ReceiptItem[] {
+  let end = lines.findIndex((l) => ITEMS_END.test(strip(l)));
+  if (end < 0) end = lines.findIndex((l) => PAYMENT.test(strip(l)));
+  if (end < 0) end = lines.length;
+
+  const items: ReceiptItem[] = [];
+  let pendingName: string | null = null; // Línea con nombre y sin precio (producto a peso).
+
+  for (const raw of lines.slice(0, end)) {
+    const line = strip(raw);
+    if (NOT_ITEM.test(line) || /\d{1,2}[/\-.]\d{1,2}[/\-.]\d{2,4}/.test(line)) {
+      pendingName = null;
+      continue;
+    }
+    const w = raw.match(WEIGHT);
+    const weighed = w ? Math.round(num(w[1]) * num(w[2]) * 100) / 100 : null;
+    const m = raw.match(TRAILING_AMOUNT);
+    let price: number;
+    let body: string;
+    if (m) {
+      price = Number(`${m[1].replace(/[.\s]/g, "")}.${m[2]}`);
+      body = raw.slice(0, m.index).trim();
+      // Línea de peso: si el importe leído no cuadra con peso × precio/kg, manda el cálculo.
+      if (weighed !== null && Math.abs(weighed - price) > 0.02) price = weighed;
+    } else if (weighed !== null) {
+      price = weighed;
+      body = raw;
+    } else {
+      const c = raw.match(CENTS_NO_COMMA);
+      if (c && hasWords(raw) && !UNIT_AFTER_NUMBER.test(raw.trim())) {
+        price = Number(c[1]) / 100;
+        body = raw.slice(0, c.index).trim();
+      } else {
+        // Posible nombre de un producto a peso; su precio viene en la línea siguiente.
+        pendingName = hasWords(raw) && raw.trim().length <= 60 ? raw : null;
+        continue;
+      }
+    }
+
+    if (!hasWords(body)) {
+      if (!pendingName) continue;
+      body = pendingName; // "0,850 kg x 2,49 €/kg 2,12" → precio del producto de la línea anterior.
+    }
+    pendingName = null;
+
+    // Cantidad al principio: "2 PAN BARRA" o "2x PAN".
+    let qty = 1;
+    const q = body.match(/^(\d{1,2})\s*[x×]?\s+(?=\D)/i);
+    if (q) {
+      qty = Number(q[1]);
+      body = body.slice(q[0].length);
+    }
+    const name = cleanName(body);
+    if (!name || price <= 0 || price >= 10_000) continue;
+    items.push({ name: qty > 1 ? `${qty} × ${name}` : name, price });
+  }
+  return items;
+}
+
 function findDate(text: string): string | null {
   for (const m of text.matchAll(/(\d{1,2})\s?[/\-.]\s?(\d{1,2})\s?[/\-.]\s?(\d{4}|\d{2})(?!\d)/g)) {
     const day = Number(m[1]);
@@ -164,5 +267,5 @@ export function parseReceipt(text: string): ReceiptGuess {
   const { total, candidates } = findTotal(lines);
   const brand = brandOf(lines) !== null;
   const section = brand ? "comida" : LEISURE.test(strip(text)) ? "ocio" : FOOD.test(header) ? "comida" : null;
-  return { total, candidates, date: findDate(text), merchant: findMerchant(lines), section };
+  return { total, candidates, date: findDate(text), merchant: findMerchant(lines), section, items: findItems(lines) };
 }
