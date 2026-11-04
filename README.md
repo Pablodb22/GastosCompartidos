@@ -15,6 +15,10 @@ Aplicación para que una pareja lleve sus gastos compartidos. Construida con Nex
   - El **ocio individual** corre entero a cargo de quien lo disfruta; si lo paga la otra persona, queda como deuda.
   - Todos los demás gastos se reparten **a partes iguales**.
 - **¿Quién debe a quién?**: saldo del mes, lo que ha pagado cada persona frente a lo que le corresponde y el desglose por apartado.
+- **Escanear ticket** 📸: haces una foto al ticket desde el móvil y la app lee el total, la fecha y el comercio.
+  Revisas el importe (o eliges otro de los que aparecen en el ticket), indicas si es comida u ocio, la descripción,
+  quién lo pagó y para quién era, y se guarda. La lectura (OCR con Tesseract.js) se hace en el propio navegador:
+  la foto no se sube a ningún sitio y no hace falta ninguna clave. La primera vez descarga unos 6 MB.
 - **Pendiente / pagado**: cada gasto que genera deuda aparece como «⏳ Pendiente». Cuando la otra persona devuelve su parte,
   se pulsa y pasa a «✅ Pagado» (se puede deshacer). Los gastos pagados **no se borran**: siguen en la lista y en los totales,
   pero dejan de contar en «¿Quién debe a quién?». También hay un botón para marcar todo el mes como pagado.
