@@ -54,6 +54,7 @@ type Row = {
   importe: number | string;
   pagado_por: number;
   porcentaje_1: number | string;
+  saldado: boolean;
 };
 
 const toExpense = (r: Row): Expense => ({
@@ -64,6 +65,7 @@ const toExpense = (r: Row): Expense => ({
   importe: Number(r.importe),
   pagadoPor: r.pagado_por as PersonId,
   porcentaje1: Number(r.porcentaje_1),
+  saldado: Boolean(r.saldado),
 });
 
 export async function listExpenses(month: MonthKey): Promise<Expense[]> {
@@ -72,7 +74,7 @@ export async function listExpenses(month: MonthKey): Promise<Expense[]> {
   const to = `${shiftMonth(month, 1)}-01`;
   const rows = (await sql`
     SELECT id, to_char(fecha, 'YYYY-MM-DD') AS fecha, seccion, concepto,
-           importe::float8 AS importe, pagado_por, porcentaje_1::float8 AS porcentaje_1
+           importe::float8 AS importe, pagado_por, porcentaje_1::float8 AS porcentaje_1, saldado
     FROM gastos
     WHERE fecha >= ${from}::date AND fecha < ${to}::date
     ORDER BY fecha DESC, id DESC
@@ -83,8 +85,9 @@ export async function listExpenses(month: MonthKey): Promise<Expense[]> {
 export async function insertExpense(e: Omit<Expense, "id">): Promise<void> {
   const sql = await db();
   await sql`
-    INSERT INTO gastos (fecha, seccion, concepto, importe, pagado_por, porcentaje_1)
-    VALUES (${e.fecha}::date, ${e.seccion}, ${e.concepto}, ${e.importe}, ${e.pagadoPor}, ${e.porcentaje1})
+    INSERT INTO gastos (fecha, seccion, concepto, importe, pagado_por, porcentaje_1, saldado, saldado_en)
+    VALUES (${e.fecha}::date, ${e.seccion}, ${e.concepto}, ${e.importe}, ${e.pagadoPor}, ${e.porcentaje1},
+            ${e.saldado}, CASE WHEN ${e.saldado} THEN now() END)
   `;
 }
 
@@ -93,7 +96,7 @@ export async function listExpensesBetween(from: string, to: string): Promise<Exp
   const sql = await db();
   const rows = (await sql`
     SELECT id, to_char(fecha, 'YYYY-MM-DD') AS fecha, seccion, concepto,
-           importe::float8 AS importe, pagado_por, porcentaje_1::float8 AS porcentaje_1
+           importe::float8 AS importe, pagado_por, porcentaje_1::float8 AS porcentaje_1, saldado
     FROM gastos
     WHERE fecha >= ${from}::date AND fecha <= ${to}::date
   `) as Row[];
@@ -112,13 +115,35 @@ export async function insertExpenses(list: Omit<Expense, "id">[]): Promise<void>
       importe: e.importe,
       pagado_por: e.pagadoPor,
       porcentaje_1: e.porcentaje1,
+      saldado: e.saldado,
     })),
   );
   await sql`
-    INSERT INTO gastos (fecha, seccion, concepto, importe, pagado_por, porcentaje_1)
-    SELECT fecha, seccion, concepto, importe, pagado_por, porcentaje_1
+    INSERT INTO gastos (fecha, seccion, concepto, importe, pagado_por, porcentaje_1, saldado, saldado_en)
+    SELECT fecha, seccion, concepto, importe, pagado_por, porcentaje_1, saldado, CASE WHEN saldado THEN now() END
     FROM jsonb_to_recordset(${payload}::jsonb)
-      AS x(fecha date, seccion text, concepto text, importe numeric, pagado_por smallint, porcentaje_1 numeric)
+      AS x(fecha date, seccion text, concepto text, importe numeric, pagado_por smallint, porcentaje_1 numeric,
+           saldado boolean)
+  `;
+}
+
+/** Marca un gasto como pagado (o lo vuelve a dejar pendiente). Nunca lo borra. */
+export async function setSettled(id: number, saldado: boolean): Promise<void> {
+  const sql = await db();
+  await sql`
+    UPDATE gastos SET saldado = ${saldado}, saldado_en = CASE WHEN ${saldado} THEN now() END
+    WHERE id = ${id}
+  `;
+}
+
+/** Marca como pagados todos los gastos pendientes de un mes. */
+export async function settleMonth(month: MonthKey): Promise<void> {
+  const sql = await db();
+  const from = `${month}-01`;
+  const to = `${shiftMonth(month, 1)}-01`;
+  await sql`
+    UPDATE gastos SET saldado = true, saldado_en = now()
+    WHERE NOT saldado AND fecha >= ${from}::date AND fecha < ${to}::date
   `;
 }
 

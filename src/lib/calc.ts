@@ -9,6 +9,8 @@ export type Expense = {
   pagadoPor: PersonId;
   /** Porcentaje del gasto que corresponde a la persona 1 (50 o proporcional al sueldo). */
   porcentaje1: number;
+  /** La otra persona ya ha devuelto su parte. El gasto se conserva, pero deja de contar como deuda. */
+  saldado: boolean;
 };
 
 export type Totals = {
@@ -17,8 +19,12 @@ export type Totals = {
   paidBy: Record<PersonId, number>;
   /** Lo que realmente le corresponde pagar a cada persona tras el reparto. */
   costFor: Record<PersonId, number>;
-  /** Positivo: la persona 2 debe a la persona 1. Negativo: al revés. */
+  /** Pendiente de pagar. Positivo: la persona 2 debe a la persona 1. Negativo: al revés. */
   balance: number;
+  /** Importe de las deudas que ya se han pagado. */
+  settled: number;
+  /** Gastos que aún generan deuda. */
+  pendingCount: number;
 };
 
 export type MonthSummary = {
@@ -40,7 +46,21 @@ export function beneficiaryOf(e: Pick<Expense, "seccion" | "porcentaje1">): Bene
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
 
-const empty = (): Totals => ({ total: 0, count: 0, paidBy: { 1: 0, 2: 0 }, costFor: { 1: 0, 2: 0 }, balance: 0 });
+const empty = (): Totals => ({
+  total: 0,
+  count: 0,
+  paidBy: { 1: 0, 2: 0 },
+  costFor: { 1: 0, 2: 0 },
+  balance: 0,
+  settled: 0,
+  pendingCount: 0,
+});
+
+/** Parte que la otra persona le debe a quien pagó (0 si no genera deuda). */
+export function owedAmount(e: Pick<Expense, "importe" | "porcentaje1" | "pagadoPor">): number {
+  const share1 = (e.importe * e.porcentaje1) / 100;
+  return round2(e.pagadoPor === 1 ? e.importe - share1 : share1);
+}
 
 function add(t: Totals, e: Expense) {
   const share1 = (e.importe * e.porcentaje1) / 100;
@@ -50,8 +70,15 @@ function add(t: Totals, e: Expense) {
   t.paidBy[e.pagadoPor] += e.importe;
   t.costFor[1] += share1;
   t.costFor[2] += share2;
-  // Quien paga adelanta la parte de la otra persona.
-  t.balance += e.pagadoPor === 1 ? share2 : -share1;
+  // Quien paga adelanta la parte de la otra persona, salvo que ya se la hayan devuelto.
+  const owed = e.pagadoPor === 1 ? share2 : share1;
+  if (owed <= 0.004) return;
+  if (e.saldado) {
+    t.settled += owed;
+  } else {
+    t.balance += e.pagadoPor === 1 ? owed : -owed;
+    t.pendingCount += 1;
+  }
 }
 
 function rounded(t: Totals): Totals {
@@ -61,6 +88,8 @@ function rounded(t: Totals): Totals {
     paidBy: { 1: round2(t.paidBy[1]), 2: round2(t.paidBy[2]) },
     costFor: { 1: round2(t.costFor[1]), 2: round2(t.costFor[2]) },
     balance: round2(t.balance),
+    settled: round2(t.settled),
+    pendingCount: t.pendingCount,
   };
 }
 

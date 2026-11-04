@@ -1,6 +1,6 @@
 import "server-only";
 import ExcelJS from "exceljs";
-import { beneficiaryOf, parseAmount, type Beneficiary, type Expense } from "./calc";
+import { beneficiaryOf, owedAmount, parseAmount, type Beneficiary, type Expense } from "./calc";
 import { FIXED_TYPES, RENT, SECTIONS, SECTION_TITLES, type PersonId, type Section } from "./config";
 import type { ExpenseInput } from "./rules";
 
@@ -10,6 +10,9 @@ export const MAX_IMPORT_ROWS = 500;
 const SHEET = "Gastos";
 const COUPLE = "Pareja";
 const BY_SALARY = "Según sueldos";
+const PENDING = "Pendiente";
+const PAID = "Pagado";
+const NO_DEBT = "Sin deuda";
 
 // Paleta de la app para el Excel.
 const VIOLET = "FF7C3AED";
@@ -32,6 +35,7 @@ export async function buildWorkbook(expenses: Expense[], names: Names): Promise<
     { header: "Para", key: "para", width: 16 },
     { header: `Parte ${names[1]}`, key: "parte1", width: 14, style: { numFmt: '#,##0.00 "€"' } },
     { header: `Parte ${names[2]}`, key: "parte2", width: 14, style: { numFmt: '#,##0.00 "€"' } },
+    { header: "Estado", key: "estado", width: 12 },
   ];
 
   const header = ws.getRow(1);
@@ -54,6 +58,7 @@ export async function buildWorkbook(expenses: Expense[], names: Names): Promise<
       para: e.seccion === "fijos" && e.concepto === RENT ? BY_SALARY : who === "pareja" ? COUPLE : names[who],
       parte1: share1,
       parte2: Math.round((e.importe - share1) * 100) / 100,
+      estado: owedAmount(e) <= 0 ? NO_DEBT : e.saldado ? PAID : PENDING,
     });
   }
 
@@ -68,6 +73,7 @@ export async function buildWorkbook(expenses: Expense[], names: Names): Promise<
       allowBlank: true,
       formulae: [list([COUPLE, names[1], names[2], BY_SALARY])],
     };
+    ws.getCell(`I${r}`).dataValidation = { type: "list", allowBlank: true, formulae: [list([PENDING, PAID])] };
   }
 
   const help = wb.addWorksheet("Instrucciones");
@@ -80,6 +86,7 @@ export async function buildWorkbook(expenses: Expense[], names: Names): Promise<
     ["Importe", "Cantidad en euros, por ejemplo 45,90."],
     ["Pagado por", `${names[1]} o ${names[2]}.`],
     ["Para", `Solo para ocio: «${COUPLE}» (a medias), «${names[1]}» o «${names[2]}» (individual). Vacío = ${COUPLE}.`],
+    ["Estado", `«${PENDING}» (la otra persona aún no ha devuelto su parte) o «${PAID}». Vacío = ${PENDING}.`],
     ["Columnas «Parte»", "Son informativas: la app recalcula el reparto al importar."],
     ["Duplicados", "Los gastos que ya existen en la app se ignoran, así que puedes reimportar sin miedo."],
   ];
@@ -105,7 +112,7 @@ const norm = (v: string) =>
     .replace(/\s+/g, " ")
     .trim();
 
-type Field = "fecha" | "apartado" | "concepto" | "importe" | "pagadoPor" | "para";
+type Field = "fecha" | "apartado" | "concepto" | "importe" | "pagadoPor" | "para" | "estado";
 
 const HEADER_ALIASES: Record<Field, string[]> = {
   fecha: ["fecha", "dia", "date"],
@@ -114,6 +121,7 @@ const HEADER_ALIASES: Record<Field, string[]> = {
   importe: ["importe", "cantidad", "precio", "total", "euros", "importe (€)", "importe (eur)"],
   pagadoPor: ["pagado por", "pagador", "quien paga", "quien pago", "pago"],
   para: ["para", "reparto", "de quien", "beneficiario"],
+  estado: ["estado", "pagado", "saldado", "situacion"],
 };
 
 /** Convierte cualquier celda de ExcelJS (fórmula, enlace, texto enriquecido…) en un valor simple. */
@@ -210,7 +218,7 @@ export async function parseWorkbook(data: ArrayBuffer, names: Names): Promise<Pa
         const get = (f: Field) => (cols.has(f) ? plain(row.getCell(cols.get(f)!).value) : null);
         const text = (f: Field) => String(get(f) ?? "").trim();
 
-        const raw = (["fecha", "apartado", "concepto", "importe", "pagadoPor", "para"] as Field[]).map(text);
+        const raw = (["fecha", "apartado", "concepto", "importe", "pagadoPor", "para", "estado"] as Field[]).map(text);
         if (raw.every((x) => x === "")) continue; // Fila vacía.
         if (out.length >= MAX_IMPORT_ROWS) {
           return { error: `El archivo tiene más de ${MAX_IMPORT_ROWS} gastos. Divídelo en varios archivos.` };
@@ -252,7 +260,16 @@ export async function parseWorkbook(data: ArrayBuffer, names: Names): Promise<Pa
           continue;
         }
 
-        out.push({ row: r, input: { fecha, seccion, concepto, importe, pagadoPor, para } });
+        const estado = norm(text("estado"));
+        let saldado: boolean;
+        if (["", norm(PENDING), "no", "debe", norm(NO_DEBT)].includes(estado)) saldado = false;
+        else if ([norm(PAID), "saldado", "si", "devuelto", "liquidado"].includes(estado)) saldado = true;
+        else {
+          out.push({ row: r, error: `«Estado» debe ser ${PENDING} o ${PAID}` });
+          continue;
+        }
+
+        out.push({ row: r, input: { fecha, seccion, concepto, importe, pagadoPor, para, saldado } });
       }
       return out;
     }
