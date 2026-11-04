@@ -19,7 +19,8 @@ Aplicación para que una pareja lleve sus gastos compartidos. Construida con Nex
   Revisas el importe (o eliges otro de los que aparecen en el ticket), indicas si es comida u ocio, la descripción,
   quién lo pagó y para quién era, y se guarda. La lectura (OCR con Tesseract.js) se hace en el propio navegador:
   la foto no se sube a ningún sitio y no hace falta ninguna clave. La primera vez descarga unos 6 MB.
-  También saca **los productos del ticket** (nombre y precio, con cantidades y productos a peso): puedes editarlos,
+  También saca **los productos del ticket** (nombre y precio, con cantidades, productos a peso y **descuentos ya
+  restados del producto**: «Descuento -0,50», «DTO 2ª unidad», «Promo -20%»…): puedes editarlos,
   eliminarlos o añadir los que falten, y te avisa si la suma no coincide con el total. Se guardan con el gasto
   (tabla `gasto_productos`) y se ven desplegando «🧾 N productos» en la lista.
 - **📊 Gráficos** (pestaña arriba a la derecha): tres quesitos por mes, uno por persona (su parte de los gastos)
