@@ -21,7 +21,8 @@ export type ReceiptGuess = {
   items: ReceiptItem[];
 };
 
-export type ReceiptItem = { name: string; price: number };
+/** Producto leído. `price` ya lleva restado el descuento (`discount`), si lo hay. */
+export type ReceiptItem = { name: string; price: number; discount?: number };
 
 const strip = (s: string) =>
   s
@@ -106,6 +107,10 @@ const TRAILING_AMOUNT = /(\d{1,3}(?:[.\s]\d{3})+|\d{1,5})\s?[,.]\s?(\d{2})\s*(?:
 // Líneas que nunca son un producto.
 const NOT_ITEM =
   /\bnif\b|\bcif\b|\btel\b|telefono|factura|ticket|fecha|\bhora\b|\bop\b|cajer|atendid|\bmesa\b|comensal|c\/|calle|avda|www|http|descuento|\bdto\b|ahorro|promo|oferta aplicada|cupon|\biva\b|\bbase\b|cuota|redondeo/;
+// Línea de descuento de un producto: "Descuento Lidl Plus -0,50", "DTO 2ª UNIDAD 50% -0,75", "-0,50", "0,50-".
+const DISCOUNT =
+  /descuento|\bdto\b|\bdto\.|promo|ahorro|oferta|rebaja|cupon|2\s*[ªºa]\s*(unidad|ud)|segunda unidad|lidl plus|\bclub\b|\bvale\b/;
+const NEGATIVE_AMOUNT = /(^|\s)-\s?\d{1,5}\s?[,.]\s?\d{2}|\d[,.]\d{2}\s?-\s*$/;
 // Fin de la lista de productos: el subtotal, el total o el pago.
 const ITEMS_END = /sub\s*-?\s*t[o0]ta|t[o0]ta[l1i]|a\s*pagar|importe\s*total/;
 // Restos de una línea de peso o precio unitario ("0,850 kg x 2,49 €/kg").
@@ -149,6 +154,26 @@ function findItems(lines: string[]): ReceiptItem[] {
 
   for (const raw of lines.slice(0, end)) {
     const line = strip(raw);
+
+    // Descuento: se resta del producto anterior, que queda con el precio final.
+    // Es descuento si el importe va en negativo, si la línea empieza por «descuento», «dto», «promo»…
+    // o si lleva un %. Así «GALLETAS OFERTA 2,50» sigue siendo un producto.
+    const firstWords = line.trim().split(/\s+/)[0] ?? "";
+    if (NEGATIVE_AMOUNT.test(raw) || DISCOUNT.test(firstWords) || (DISCOUNT.test(line) && line.includes("%"))) {
+      const prev = items[items.length - 1];
+      const amounts = amountsIn(raw);
+      const pct = line.match(/(\d{1,2})\s*%/);
+      let off = amounts.length ? amounts[amounts.length - 1] : pct && prev ? (prev.price * Number(pct[1])) / 100 : 0;
+      off = Math.round(off * 100) / 100;
+      // Solo si es menor que el precio (un descuento mayor no es de ese producto: p. ej., un cupón general).
+      if (prev && off > 0 && off < prev.price) {
+        prev.price = Math.round((prev.price - off) * 100) / 100;
+        prev.discount = Math.round(((prev.discount ?? 0) + off) * 100) / 100;
+      }
+      pendingName = null;
+      continue;
+    }
+
     if (NOT_ITEM.test(line) || /\d{1,2}[/\-.]\d{1,2}[/\-.]\d{2,4}/.test(line)) {
       pendingName = null;
       continue;

@@ -290,7 +290,13 @@ function ReviewForm({
   const { guess } = step;
   const [section, setSection] = useState<"comida" | "ocio" | null>(guess.section);
   const [items, setItems] = useState<ItemRow[]>(() =>
-    guess.items.map((it, i) => ({ id: i, name: it.name, price: toInput(it.price) })),
+    guess.items.map((it, i) => ({
+      id: i,
+      name: it.name,
+      price: toInput(it.price),
+      discount: it.discount,
+      readPrice: toInput(it.price),
+    })),
   );
   const nextId = useRef(guess.items.length);
   const itemsSum = sumItems(items);
@@ -307,16 +313,17 @@ function ReviewForm({
   );
 
   return (
-    <form action={action} className="space-y-4">
+    <form action={action} className="space-y-5">
       <input type="hidden" name="seccion" value={section ?? ""} />
       <input type="hidden" name="productos" value={productsJson} />
 
-      <div className="flex gap-3">
+      {/* 1. Importe total de la factura */}
+      <section aria-labelledby="ticket-total-titulo" className="flex gap-3">
         {/* eslint-disable-next-line @next/next/no-img-element -- vista previa local (blob:) */}
-        <img src={step.preview} alt="Foto del ticket" className="h-28 w-20 shrink-0 rounded-xl object-cover shadow" />
+        <img src={step.preview} alt="Foto del ticket" className="h-24 w-16 shrink-0 rounded-xl object-cover shadow" />
         <div className="min-w-0 flex-1">
-          <label htmlFor="ticket-importe" className="label">
-            {guess.total !== null ? "Total leído — ¿es correcto?" : "No hemos encontrado el total: escríbelo"}
+          <label id="ticket-total-titulo" htmlFor="ticket-importe" className="label">
+            💶 Importe total de la factura
           </label>
           <input
             id="ticket-importe"
@@ -327,16 +334,19 @@ function ReviewForm({
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
             placeholder="0,00"
-            className="input font-display text-right text-2xl! tabular-nums"
+            className="input font-display text-right text-3xl! tabular-nums"
           />
+          <p className="mt-1 text-[11px] font-semibold text-slate-400">
+            {guess.total !== null ? "Leído del ticket. Si no es correcto, cámbialo." : "No hemos encontrado el total: escríbelo."}
+          </p>
           {guess.candidates.length > 1 && (
-            <div className="mt-2 flex flex-wrap gap-1.5" aria-label="Otros importes del ticket">
+            <div className="mt-1.5 flex flex-wrap gap-1.5" aria-label="Otros importes del ticket">
               {guess.candidates.map((c) => (
                 <button
                   key={c}
                   type="button"
                   onClick={() => setAmount(toInput(c))}
-                  className={`rounded-full border-2 px-2.5 py-0.5 text-xs font-bold tabular-nums transition ${
+                  className={`rounded-full border-2 px-2 py-0.5 text-[11px] font-bold tabular-nums transition ${
                     amount === toInput(c)
                       ? "border-violet-500 bg-violet-500 text-white"
                       : "border-violet-100 bg-white text-violet-700 hover:border-violet-300"
@@ -348,8 +358,9 @@ function ReviewForm({
             </div>
           )}
         </div>
-      </div>
+      </section>
 
+      {/* 2. Productos con su importe (descuentos ya aplicados) */}
       <ProductsEditor
         items={items}
         sum={itemsSum}
@@ -359,103 +370,115 @@ function ReviewForm({
         onUseSum={() => setAmount(toInput(itemsSum))}
       />
 
-      <fieldset>
-        <legend className="label">¿Qué es?</legend>
-        <div className="grid grid-cols-2 gap-2">
-          {(
-            [
-              ["comida", "🛒 Comida"],
-              ["ocio", "🎉 Ocio"],
-            ] as const
-          ).map(([value, label]) => (
-            <button
-              key={value}
-              type="button"
-              aria-pressed={section === value}
-              onClick={() => setSection(value)}
-              className={`rounded-2xl border-2 px-3 py-3 text-base font-extrabold transition ${
-                section === value
-                  ? value === "comida"
-                    ? "border-emerald-500 bg-emerald-500 text-white shadow-md"
-                    : "border-pink-500 bg-pink-500 text-white shadow-md"
-                  : "border-violet-100 bg-white text-slate-600 hover:border-violet-300"
-              }`}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-      </fieldset>
+      {/* 3. Datos del gasto */}
+      <section aria-labelledby="ticket-datos" className="space-y-4 border-t-2 border-violet-50 pt-4">
+        <h3 id="ticket-datos" className="font-display text-lg font-semibold text-violet-950">
+          📝 Datos del gasto
+        </h3>
 
-      <div className="grid grid-cols-[minmax(0,1fr)_150px] gap-3">
-        <div>
-          <label htmlFor="ticket-concepto" className="label">
-            Descripción
-          </label>
-          <input
-            id="ticket-concepto"
-            name="concepto"
-            required
-            maxLength={120}
-            defaultValue={guess.merchant ?? ""}
-            placeholder={section === "ocio" ? "Ej.: Cena en restaurante" : "Ej.: Compra semanal"}
-            className="input"
-          />
-        </div>
-        <div>
-          <label htmlFor="ticket-fecha" className="label">
-            Fecha
-          </label>
-          <input
-            id="ticket-fecha"
-            name="fecha"
-            type="date"
-            required
-            min={minDate}
-            max={maxDate}
-            defaultValue={guess.date ?? today}
-            className="input"
-          />
-        </div>
-      </div>
-      {step.dateNote && <p className="-mt-2 text-xs font-semibold text-amber-700">⚠️ {step.dateNote}</p>}
-
-      <fieldset>
-        <legend className="label">¿Quién lo pagó?</legend>
-        <div className="grid grid-cols-2 gap-2">
-          {([1, 2] as const).map((p) => (
-            <label
-              key={p}
-              className={`flex cursor-pointer items-center justify-center rounded-full border-2 border-violet-100 bg-white px-3 py-2 text-sm font-bold text-slate-600 transition hover:border-violet-200 has-checked:text-white has-checked:shadow-md has-focus-visible:ring-4 has-focus-visible:ring-brand-100 ${
-                p === 1 ? "has-checked:border-violet-500 has-checked:bg-violet-500" : "has-checked:border-pink-500 has-checked:bg-pink-500"
-              }`}
-            >
-              <input type="radio" name="pagadoPor" value={p} defaultChecked={p === 1} className="sr-only" />
-              <span className="truncate">{names[p]}</span>
-            </label>
-          ))}
-        </div>
-      </fieldset>
-
-      {section === "ocio" ? (
         <fieldset>
-          <legend className="label">¿Para quién era?</legend>
-          <div className="grid grid-cols-3 gap-2">
-            {(["pareja", "1", "2"] as const).map((o) => (
-              <label
-                key={o}
-                className="flex cursor-pointer items-center justify-center gap-1.5 rounded-full border-2 border-amber-200 bg-white px-2 py-2 text-sm font-bold text-slate-600 transition hover:border-amber-300 has-checked:border-amber-400 has-checked:bg-amber-400 has-checked:text-white has-checked:shadow-md has-focus-visible:ring-4 has-focus-visible:ring-amber-100"
+          <legend className="label">¿Es ocio o compra?</legend>
+          <div className="grid grid-cols-2 gap-2">
+            {(
+              [
+                ["comida", "🛒 Compra"],
+                ["ocio", "🎉 Ocio"],
+              ] as const
+            ).map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                aria-pressed={section === value}
+                onClick={() => setSection(value)}
+                className={`rounded-2xl border-2 px-3 py-2.5 text-base font-extrabold transition ${
+                  section === value
+                    ? value === "comida"
+                      ? "border-emerald-500 bg-emerald-500 text-white shadow-md"
+                      : "border-pink-500 bg-pink-500 text-white shadow-md"
+                    : "border-violet-100 bg-white text-slate-600 hover:border-violet-300"
+                }`}
               >
-                <input type="radio" name="para" value={o} defaultChecked={o === "pareja"} className="sr-only" />
-                <span aria-hidden="true">{o === "pareja" ? "💑" : "🙋"}</span>
-                <span className="truncate">{o === "pareja" ? "Pareja" : names[Number(o) as PersonId]}</span>
+                {label}
+              </button>
+            ))}
+          </div>
+        </fieldset>
+
+        {section === "ocio" ? (
+          <fieldset>
+            <legend className="label">¿Para quién es?</legend>
+            <div className="grid grid-cols-3 gap-2">
+              {(["pareja", "1", "2"] as const).map((o) => (
+                <label
+                  key={o}
+                  className="flex cursor-pointer items-center justify-center gap-1.5 rounded-full border-2 border-amber-200 bg-white px-2 py-2 text-sm font-bold text-slate-600 transition hover:border-amber-300 has-checked:border-amber-400 has-checked:bg-amber-400 has-checked:text-white has-checked:shadow-md has-focus-visible:ring-4 has-focus-visible:ring-amber-100"
+                >
+                  <input type="radio" name="para" value={o} defaultChecked={o === "pareja"} className="sr-only" />
+                  <span aria-hidden="true">{o === "pareja" ? "💑" : "🙋"}</span>
+                  <span className="truncate">{o === "pareja" ? "Pareja" : names[Number(o) as PersonId]}</span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
+        ) : (
+          <>
+            <input type="hidden" name="para" value="pareja" />
+            {section === "comida" && (
+              <p className="-mt-1 text-xs font-semibold text-slate-500">💑 La compra es para los dos: se reparte a medias.</p>
+            )}
+          </>
+        )}
+
+        <fieldset>
+          <legend className="label">¿Quién lo pagó?</legend>
+          <div className="grid grid-cols-2 gap-2">
+            {([1, 2] as const).map((p) => (
+              <label
+                key={p}
+                className={`flex cursor-pointer items-center justify-center rounded-full border-2 border-violet-100 bg-white px-3 py-2 text-sm font-bold text-slate-600 transition hover:border-violet-200 has-checked:text-white has-checked:shadow-md has-focus-visible:ring-4 has-focus-visible:ring-brand-100 ${
+                  p === 1 ? "has-checked:border-violet-500 has-checked:bg-violet-500" : "has-checked:border-pink-500 has-checked:bg-pink-500"
+                }`}
+              >
+                <input type="radio" name="pagadoPor" value={p} defaultChecked={p === 1} className="sr-only" />
+                <span className="truncate">{names[p]}</span>
               </label>
             ))}
           </div>
         </fieldset>
-      ) : (
-        <input type="hidden" name="para" value="pareja" />
-      )}
+
+        <div className="grid grid-cols-[minmax(0,1fr)_150px] gap-3">
+          <div>
+            <label htmlFor="ticket-concepto" className="label">
+              Descripción
+            </label>
+            <input
+              id="ticket-concepto"
+              name="concepto"
+              required
+              maxLength={120}
+              defaultValue={guess.merchant ?? ""}
+              placeholder={section === "ocio" ? "Ej.: Cena en restaurante" : "Ej.: Compra semanal"}
+              className="input"
+            />
+          </div>
+          <div>
+            <label htmlFor="ticket-fecha" className="label">
+              Fecha
+            </label>
+            <input
+              id="ticket-fecha"
+              name="fecha"
+              type="date"
+              required
+              min={minDate}
+              max={maxDate}
+              defaultValue={guess.date ?? today}
+              className="input"
+            />
+          </div>
+        </div>
+        {step.dateNote && <p className="-mt-2 text-xs font-semibold text-amber-700">⚠️ {step.dateNote}</p>}
+      </section>
 
       {error && (
         <p role="alert" className="rounded-2xl bg-red-50 px-3 py-2 text-sm font-bold text-red-600">
@@ -468,7 +491,7 @@ function ReviewForm({
           🔄 Repetir foto
         </button>
         <button type="submit" disabled={pending || !section} className="btn-primary sm:flex-1">
-          {pending ? "Guardando…" : section ? "✅ Guardar gasto" : "Elige comida u ocio"}
+          {pending ? "Guardando…" : section ? "✅ Guardar gasto" : "Elige ocio o compra"}
         </button>
       </div>
 
@@ -484,7 +507,8 @@ function ReviewForm({
 
 // ---------- Productos del ticket ----------
 
-type ItemRow = { id: number; name: string; price: string };
+/** `discount` y `readPrice`: descuento leído del ticket y precio con el que se leyó (para saber si se ha tocado). */
+type ItemRow = { id: number; name: string; price: string; discount?: number; readPrice?: string };
 
 const sumItems = (items: ItemRow[]) =>
   Math.round(items.reduce((a, it) => a + (parseAmount(it.price) ?? 0), 0) * 100) / 100;
@@ -513,7 +537,7 @@ function ProductsEditor({
     <section aria-labelledby="ticket-productos" className="rounded-2xl bg-violet-50/60 p-3">
       <div className="mb-2 flex items-baseline justify-between gap-2">
         <h3 id="ticket-productos" className="label mb-0!">
-          🧾 Productos del ticket {items.length > 0 && `(${items.length})`}
+          🧾 Productos {items.length > 0 && `(${items.length})`}
         </h3>
         <span className="text-xs font-bold text-slate-500">
           Suma: <span className="text-slate-900 tabular-nums">{toInput(sum)} €</span>
@@ -530,35 +554,44 @@ function ProductsEditor({
             const badPrice = it.price.trim() !== "" && (parseAmount(it.price) ?? 0) <= 0;
             const missingPrice = it.name.trim() !== "" && it.price.trim() === "";
             const missingName = it.name.trim() === "" && it.price.trim() !== "";
+            // El aviso del descuento solo se muestra mientras el precio sea el leído.
+            const showDiscount = !!it.discount && it.price === it.readPrice;
             return (
-              <li key={it.id} className="flex items-center gap-1.5">
-                <input
-                  aria-label={`Nombre del producto ${i + 1}`}
-                  value={it.name}
-                  maxLength={80}
-                  placeholder="Nombre del producto"
-                  onChange={(e) => update(it.id, { name: e.target.value })}
-                  className={`input w-auto! min-w-0 flex-1 py-1.5! ${missingName ? "border-red-300!" : ""}`}
-                />
-                <input
-                  aria-label={`Precio del producto ${i + 1}`}
-                  value={it.price}
-                  inputMode="decimal"
-                  placeholder="0,00"
-                  onChange={(e) => update(it.id, { price: e.target.value })}
-                  className={`input w-20! shrink-0 py-1.5! text-right tabular-nums ${
-                    badPrice || missingPrice ? "border-red-300!" : ""
-                  }`}
-                />
-                <button
-                  type="button"
-                  onClick={() => remove(it.id)}
-                  aria-label={`Eliminar ${it.name || `producto ${i + 1}`}`}
-                  title="Eliminar producto"
-                  className="shrink-0 rounded-full p-2 text-slate-400 transition hover:bg-red-50 hover:text-red-500"
-                >
-                  ✕
-                </button>
+              <li key={it.id}>
+                <div className="flex items-center gap-1.5">
+                  <input
+                    aria-label={`Nombre del producto ${i + 1}`}
+                    value={it.name}
+                    maxLength={80}
+                    placeholder="Nombre del producto"
+                    onChange={(e) => update(it.id, { name: e.target.value })}
+                    className={`input w-auto! min-w-0 flex-1 py-1.5! ${missingName ? "border-red-300!" : ""}`}
+                  />
+                  <input
+                    aria-label={`Precio del producto ${i + 1}`}
+                    value={it.price}
+                    inputMode="decimal"
+                    placeholder="0,00"
+                    onChange={(e) => update(it.id, { price: e.target.value })}
+                    className={`input w-20! shrink-0 py-1.5! text-right tabular-nums ${
+                      badPrice || missingPrice ? "border-red-300!" : ""
+                    }`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => remove(it.id)}
+                    aria-label={`Eliminar ${it.name || `producto ${i + 1}`}`}
+                    title="Eliminar producto"
+                    className="shrink-0 rounded-full p-2 text-slate-400 transition hover:bg-red-50 hover:text-red-500"
+                  >
+                    ✕
+                  </button>
+                </div>
+                {showDiscount && (
+                  <p className="mt-0.5 mr-9 text-right text-[11px] font-bold text-emerald-700">
+                    🏷️ Descuento de {toInput(it.discount!)} € ya aplicado
+                  </p>
+                )}
               </li>
             );
           })}
@@ -576,8 +609,8 @@ function ProductsEditor({
       {mismatch && (
         <div className="mt-2 flex flex-wrap items-center justify-between gap-2 rounded-xl bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800">
           <span>
-            ⚠️ La suma de productos ({toInput(sum)} €) no coincide con el total ({toInput(total!)} €). Puede haber
-            descuentos o algún producto mal leído.
+            ⚠️ La suma de productos ({toInput(sum)} €) no coincide con el total ({toInput(total!)} €). Puede que algún
+            producto o descuento no se haya leído bien.
           </span>
           <button
             type="button"
