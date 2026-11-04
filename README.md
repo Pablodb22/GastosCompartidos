@@ -22,14 +22,10 @@ Aplicación para que una pareja lleve sus gastos compartidos. Construida con Nex
   También saca **los productos del ticket** (nombre y precio, con cantidades y productos a peso): puedes editarlos,
   eliminarlos o añadir los que falten, y te avisa si la suma no coincide con el total. Se guardan con el gasto
   (tabla `gasto_productos`) y se ven desplegando «🧾 N productos» en la lista.
-- **📊 Gráficos** (pestaña arriba a la derecha), por mes:
-  - **Una tarjeta por persona**, calculada sobre *su parte* de los gastos: su gasto (comparado con el mes anterior
-    hasta el mismo día), lo que ha pagado de su bolsillo, lo que debe o le deben y su media diaria; barras de en qué se
-    le va el dinero (alquiler, internet, agua, luz, comida, ocio en pareja y ocio individual) frente al mes anterior;
-    línea de cómo crece su gasto día a día; y sus 5 gastos más grandes.
-  - **Una tarjeta de pareja** con los gastos comunes: columnas por mes divididas en fijos, comida y ocio en pareja,
-    quién ha adelantado el dinero común y el desglose del mes.
-  - Cada gráfico tiene avisos al pasar el ratón o el dedo y una vista en tabla.
+- **📊 Gráficos** (pestaña arriba a la derecha): tres quesitos por mes, uno por persona (su parte de los gastos)
+  y otro de la pareja (solo gastos comunes). Cada uno muestra el total y se reparte en gastos fijos, comida y
+  **ocio dividido por concepto** (cine, cena…; los más pequeños se agrupan en «Otro ocio»). Al tocar una porción
+  se ve su importe, su % y cuántos gastos tiene.
 - **Pendiente / pagado**: cada gasto que genera deuda aparece como «⏳ Pendiente». Cuando la otra persona devuelve su parte,
   se pulsa y pasa a «✅ Pagado» (se puede deshacer). Los gastos pagados **no se borran**: siguen en la lista y en los totales,
   pero dejan de contar en «¿Quién debe a quién?». También hay un botón para marcar todo el mes como pagado.
