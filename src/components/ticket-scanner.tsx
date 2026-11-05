@@ -6,7 +6,8 @@ import { createExpense, type ExpenseFormState } from "@/app/actions";
 import type { PersonId } from "@/lib/config";
 import { ProductsEditor, sumItems, toInput, type ItemRow } from "@/components/products-editor";
 import { parseAmount } from "@/lib/calc";
-import { parseReceipt, type ReceiptGuess } from "@/lib/receipt";
+import { prepareImage, type Prep } from "@/lib/ocr";
+import { PERFECT, parseReceipt, receiptScore, type ReceiptGuess } from "@/lib/receipt";
 
 type Props = {
   names: Record<PersonId, string>;
@@ -23,38 +24,8 @@ type Step =
 
 const fmtDate = (iso: string) => iso.split("-").reverse().join("/");
 
-/**
- * Prepara la foto para el OCR: la reduce (más rápido) y la pasa a escala de
- * grises con más contraste (los tickets térmicos suelen salir desvaídos).
- */
-async function prepareImage(file: File): Promise<HTMLCanvasElement> {
-  const bitmap = await createImageBitmap(file);
-  const scale = Math.min(1, 1800 / Math.max(bitmap.width, bitmap.height));
-  const canvas = document.createElement("canvas");
-  canvas.width = Math.round(bitmap.width * scale);
-  canvas.height = Math.round(bitmap.height * scale);
-  const ctx = canvas.getContext("2d", { willReadFrequently: true })!;
-  ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
-  bitmap.close();
-
-  const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
-  const d = img.data;
-  let min = 255;
-  let max = 0;
-  for (let i = 0; i < d.length; i += 4) {
-    const g = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
-    d[i] = g;
-    if (g < min) min = g;
-    if (g > max) max = g;
-  }
-  const range = Math.max(1, max - min);
-  for (let i = 0; i < d.length; i += 4) {
-    const v = ((d[i] - min) / range) * 255;
-    d[i] = d[i + 1] = d[i + 2] = v;
-  }
-  ctx.putImageData(img, 0, 0);
-  return canvas;
-}
+/** Tratamientos de la foto, en orden de preferencia (medido con fotos de prueba). */
+const PREPS: Prep[] = ["flatten", "binarize", "stretch"];
 
 const STATUS: Record<string, string> = {
   "loading tesseract core": "Preparando el lector…",
@@ -120,9 +91,8 @@ export function TicketScanner({ names, today, minDate, maxDate }: Props) {
     setPreview(preview);
     setStep({ name: "reading", progress: 0, label: "Preparando la foto…", preview });
     try {
-      const canvas = await prepareImage(file);
       if (!workerRef.current) {
-        const { createWorker } = await import("tesseract.js");
+        const { createWorker, PSM } = await import("tesseract.js");
         workerRef.current = await createWorker("spa", 1, {
           logger: (m) =>
             setStep((s) =>
@@ -131,15 +101,29 @@ export function TicketScanner({ names, today, minDate, maxDate }: Props) {
                 : s,
             ),
         });
+        // Bloque único: mantiene en la misma línea el nombre y el precio de cada producto.
+        await workerRef.current.setParameters({ tessedit_pageseg_mode: PSM.SINGLE_BLOCK });
       }
-      const { data } = await workerRef.current.recognize(canvas);
-      const guess = parseReceipt(data.text);
+
+      // Primera lectura con la luz «aplanada». Si la suma de productos no cuadra con el
+      // total, se repite con otros tratamientos de la foto y se queda la que mejor cuadre.
+      let best: { text: string; guess: ReceiptGuess; score: number } | null = null;
+      for (const [i, prep] of PREPS.entries()) {
+        if (i > 0) setStep((s) => (s.name === "reading" ? { ...s, progress: 0, label: "Repasando el ticket…" } : s));
+        const canvas = await prepareImage(file, prep);
+        const { data } = await workerRef.current.recognize(canvas);
+        const parsed = parseReceipt(data.text);
+        const score = receiptScore(parsed);
+        if (!best || score > best.score) best = { text: data.text, guess: parsed, score };
+        if (score >= PERFECT) break;
+      }
+      const { text, guess } = best!;
       let dateNote: string | undefined;
       if (guess.date && (guess.date < minDate || guess.date > maxDate)) {
         dateNote = `La fecha del ticket (${fmtDate(guess.date)}) está fuera de los meses que guarda la app; se ha puesto la de hoy.`;
         guess.date = null;
       }
-      setStep({ name: "review", preview, text: data.text, guess, dateNote });
+      setStep({ name: "review", preview, text, guess, dateNote });
     } catch {
       setPreview(null);
       setStep({

@@ -111,8 +111,11 @@ export function ProductsEditor({
       {mismatch && (
         <div className="mt-2 flex flex-wrap items-center justify-between gap-2 rounded-xl bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800">
           <span>
-            ⚠️ La suma de productos ({toInput(sum)} €) no coincide con el total ({toInput(total!)} €). Puede que algún
-            producto o descuento no se haya leído bien.
+            ⚠️ La suma de productos ({toInput(sum)} €) no coincide con el total ({toInput(total!)} €):{" "}
+            <strong>
+              {total! > sum ? `faltan ${toInput(total! - sum)} €` : `sobran ${toInput(sum - total!)} €`}
+            </strong>
+            . Puede que algún producto o descuento no se haya leído bien.
           </span>
           <button
             type="button"

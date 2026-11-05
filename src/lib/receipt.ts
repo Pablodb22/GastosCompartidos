@@ -103,7 +103,8 @@ function findTotal(lines: string[]): { total: number | null; candidates: number[
 // ---------- Productos ----------
 
 // Importe al final de la línea, con posibles restos: "€", código de IVA ("A", "B"…) o "*".
-const TRAILING_AMOUNT = /(\d{1,3}(?:[.\s]\d{3})+|\d{1,5})\s?[,.]\s?(\d{2})\s*(?:€|eur|[a-d*])?\s*$/i;
+// La letra del IVA a veces se lee como un dígito pegado o suelto: "2,79 B" → "2,79 8" o "1,15B" → "1,158".
+const TRAILING_AMOUNT = /(\d{1,3}(?:[.\s]\d{3})+|\d{1,5})\s?[,.]\s?(\d{2})(?:\s?\d)?\s*(?:€|eur|[a-d*])?\s*$/i;
 // Líneas que nunca son un producto.
 const NOT_ITEM =
   /\bnif\b|\bcif\b|\btel\b|telefono|factura|ticket|fecha|\bhora\b|\bop\b|cajer|atendid|\bmesa\b|comensal|c\/|calle|avda|www|http|descuento|\bdto\b|ahorro|promo|oferta aplicada|cupon|\biva\b|\bbase\b|cuota|redondeo/;
@@ -139,13 +140,36 @@ const num = (s: string) => Number(s.replace(",", "."));
 
 const hasWords = (s: string) => /[a-záéíóúüñ]{3,}/i.test(s.replace(UNIT_JUNK, " "));
 
+// Cabecera de columnas ("UDS DESCRIPCION TOTAL", "Descripción P. Unit Importe"): no es el total.
+const COLUMN_HEADER = /descrip|articulo|\bud?s\b|\bcant|p\.?\s*unit|precio|importe|concepto/;
+// Línea de recuento ("TOTAL ARTICULOS: 10"): ya ha terminado la lista, pero no es el importe.
+const ITEM_COUNT = /t[o0]ta[l1i]\s*(de\s*)?(articulos|unidades|uds|productos)|n\.?\s*[ºo°]?\s*(de\s*)?articulos/;
+
+/**
+ * Dónde acaba la lista de productos: en el subtotal o total con importe, en
+ * «TOTAL ARTICULOS», o en un «TOTAL» cuyo importe va solo en la línea de abajo.
+ * Una cabecera de columnas con la palabra «TOTAL» no corta la lista.
+ */
+function findItemsEnd(lines: string[]): number {
+  for (let i = 0; i < lines.length; i++) {
+    const line = strip(lines[i]);
+    if (!ITEMS_END.test(line)) continue;
+    if (ITEM_COUNT.test(line)) return i;
+    if (amountsIn(lines[i]).length) return i;
+    if (COLUMN_HEADER.test(line)) continue;
+    const next = lines[i + 1] ?? "";
+    if (amountsIn(next).length && !hasWords(next)) return i;
+  }
+  return -1;
+}
+
 /**
  * Busca los productos: líneas antes del total que terminan en un importe.
  * Entiende cantidades ("2 PAN BARRA 0,60 1,20" → «2 × Pan barra», 1,20 €)
  * y productos a peso en dos líneas ("TOMATE" / "0,850 kg x 2,49 €/kg 2,12").
  */
 function findItems(lines: string[]): ReceiptItem[] {
-  let end = lines.findIndex((l) => ITEMS_END.test(strip(l)));
+  let end = findItemsEnd(lines);
   if (end < 0) end = lines.findIndex((l) => PAYMENT.test(strip(l)));
   if (end < 0) end = lines.length;
 
@@ -293,4 +317,20 @@ export function parseReceipt(text: string): ReceiptGuess {
   const brand = brandOf(lines) !== null;
   const section = brand ? "comida" : LEISURE.test(strip(text)) ? "ocio" : FOOD.test(header) ? "comida" : null;
   return { total, candidates, date: findDate(text), merchant: findMerchant(lines), section, items: findItems(lines) };
+}
+
+/** Puntuación que alcanza una lectura cuyos productos suman exactamente el total. */
+export const PERFECT = 1000;
+
+/**
+ * Lo bien que ha salido una lectura, para elegir entre varias pasadas del OCR:
+ * lo mejor es que los productos sumen el total; si no, cuanto más cerca y más
+ * productos, mejor.
+ */
+export function receiptScore(g: ReceiptGuess): number {
+  if (g.total === null) return g.items.length;
+  const sum = g.items.reduce((a, i) => a + i.price, 0);
+  if (g.items.length > 0 && Math.abs(sum - g.total) < 0.011) return PERFECT + g.items.length;
+  const closeness = g.total > 0 ? Math.max(0, 1 - Math.abs(sum - g.total) / g.total) : 0;
+  return closeness * 100 + g.items.length;
 }
