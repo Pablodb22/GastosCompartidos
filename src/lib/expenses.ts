@@ -88,6 +88,49 @@ export async function listExpenses(month: MonthKey): Promise<Expense[]> {
   return rows.map(toExpense);
 }
 
+/** Un gasto con sus productos, o null si no existe. */
+export async function getExpense(id: number): Promise<Expense | null> {
+  const sql = await db();
+  const rows = (await sql`
+    SELECT id, to_char(fecha, 'YYYY-MM-DD') AS fecha, seccion, concepto,
+           importe::float8 AS importe, pagado_por, porcentaje_1::float8 AS porcentaje_1, saldado,
+           (SELECT json_agg(json_build_object('nombre', p.nombre, 'importe', p.importe::float8) ORDER BY p.orden)
+              FROM gasto_productos p WHERE p.gasto_id = g.id) AS productos
+    FROM gastos g
+    WHERE id = ${id}
+  `) as Row[];
+  return rows[0] ? toExpense(rows[0]) : null;
+}
+
+/**
+ * Actualiza un gasto y sustituye su lista de productos, todo en una sola
+ * sentencia (o se guarda todo o nada). Devuelve false si el gasto ya no existe.
+ */
+export async function updateExpense(e: Expense): Promise<boolean> {
+  const sql = await db();
+  const productos = JSON.stringify(
+    (e.productos ?? []).map((p, i) => ({ orden: i + 1, nombre: p.nombre, importe: p.importe })),
+  );
+  const rows = (await sql`
+    WITH u AS (
+      UPDATE gastos SET
+        fecha = ${e.fecha}::date, seccion = ${e.seccion}, concepto = ${e.concepto}, importe = ${e.importe},
+        pagado_por = ${e.pagadoPor}, porcentaje_1 = ${e.porcentaje1}, saldado = ${e.saldado},
+        saldado_en = CASE WHEN ${e.saldado} THEN COALESCE(saldado_en, now()) END
+      WHERE id = ${e.id}
+      RETURNING id
+    ),
+    borrados AS (DELETE FROM gasto_productos WHERE gasto_id IN (SELECT id FROM u)),
+    nuevos AS (
+      INSERT INTO gasto_productos (gasto_id, orden, nombre, importe)
+      SELECT u.id, x.orden, x.nombre, x.importe
+      FROM u, jsonb_to_recordset(${productos}::jsonb) AS x(orden smallint, nombre text, importe numeric)
+    )
+    SELECT id FROM u
+  `) as { id: string }[];
+  return rows.length > 0;
+}
+
 export async function insertExpense(e: Omit<Expense, "id">): Promise<void> {
   const sql = await db();
   if (!e.productos?.length) {

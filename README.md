@@ -27,6 +27,9 @@ Aplicación para que una pareja lleve sus gastos compartidos. Construida con Nex
   y otro de la pareja (solo gastos comunes). Cada uno muestra el total y se reparte en gastos fijos, comida y
   **ocio dividido por concepto** (cine, cena…; los más pequeños se agrupan en «Otro ocio»). Al tocar una porción
   se ve su importe, su % y cuántos gastos tiene.
+- **Editar gastos ya guardados** ✏️: apartado, fecha, concepto, importe, quién pagó, para quién (ocio) y los
+  productos del ticket. Se aplican las mismas reglas que al crear el gasto; si estaba pagado sigue pagado, y un
+  alquiler conserva el % de sueldos con el que se registró.
 - **Pendiente / pagado**: cada gasto que genera deuda aparece como «⏳ Pendiente». Cuando la otra persona devuelve su parte,
   se pulsa y pasa a «✅ Pagado» (se puede deshacer). Los gastos pagados **no se borran**: siguen en la lista y en los totales,
   pero dejan de contar en «¿Quién debe a quién?». También hay un botón para marcar todo el mes como pagado.
