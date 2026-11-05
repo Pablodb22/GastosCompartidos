@@ -4,6 +4,7 @@ import { AppHeader } from "@/components/app-header";
 import { CoupleForm } from "@/components/couple-form";
 import { ExpenseForm } from "@/components/expense-form";
 import { DeleteButton } from "@/components/delete-button";
+import { EditExpenseButton } from "@/components/edit-expense";
 import { ImportButton } from "@/components/import-button";
 import { TicketScanner } from "@/components/ticket-scanner";
 import { SettleAllButton, SettleButton } from "@/components/settle-button";
@@ -115,6 +116,8 @@ async function Dashboard({ searchParams }: { searchParams: PageProps<"/">["searc
               expenses={expenses.filter((e) => e.seccion === s.id)}
               names={names}
               rentPct={rentPct}
+              minDate={retention.cutoffDate}
+              maxDate={retention.maxDate}
               form={
                 <ExpenseForm
                   section={s.id}
@@ -401,6 +404,8 @@ function SectionCard({
   expenses,
   names,
   rentPct,
+  minDate,
+  maxDate,
   form,
 }: {
   section: Section;
@@ -410,6 +415,8 @@ function SectionCard({
   expenses: Expense[];
   names: Names;
   rentPct: number | null;
+  minDate: string;
+  maxDate: string;
   form: React.ReactNode;
 }) {
   const style = SECTION_STYLE[section];
@@ -481,7 +488,10 @@ function SectionCard({
                 <span className="whitespace-nowrap text-sm font-extrabold tabular-nums text-slate-800">{formatEUR(e.importe)}</span>
                 <SettleChip expense={e} names={names} />
               </div>
-              <DeleteButton id={e.id} label={e.concepto} />
+              <div className="flex flex-col items-center">
+                <EditExpenseButton expense={e} names={names} minDate={minDate} maxDate={maxDate} />
+                <DeleteButton id={e.id} label={e.concepto} />
+              </div>
               {/* Ocupa toda la fila para que los nombres de los productos se lean bien en el móvil. */}
               {e.productos && <ProductList productos={e.productos} total={e.importe} />}
             </li>

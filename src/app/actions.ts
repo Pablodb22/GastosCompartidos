@@ -2,10 +2,11 @@
 
 import { refresh } from "next/cache";
 import { parseAmount, type Expense } from "@/lib/calc";
-import { isSection, type PersonId } from "@/lib/config";
+import { RENT, isSection, type PersonId } from "@/lib/config";
 import { parseWorkbook } from "@/lib/excel";
 import {
   getCouple,
+  getExpense,
   insertExpense,
   insertExpenses,
   listExpensesBetween,
@@ -14,6 +15,7 @@ import {
   saveCouple,
   setSettled,
   settleMonth,
+  updateExpense,
 } from "@/lib/expenses";
 import { getRetention, isValidMonthKey } from "@/lib/periods";
 import { buildExpense, parseProducts } from "@/lib/rules";
@@ -182,6 +184,59 @@ export async function importExpenses(_prev: ImportState, formData: FormData): Pr
     settled: toSettle.length,
     rowErrors,
   });
+}
+
+// ---------- Editar un gasto guardado ----------
+
+export type EditExpenseState = { ok?: boolean; error?: string; submission?: number };
+
+/**
+ * Guarda los cambios de un gasto. Usa las mismas reglas que al crearlo y
+ * conserva lo que no se edita: si estaba pagado, y el % del alquiler con el
+ * que se registró (cambiar los sueldos no altera los alquileres pasados).
+ */
+export async function editExpense(_prev: EditExpenseState, formData: FormData): Promise<EditExpenseState> {
+  const done = (s: EditExpenseState): EditExpenseState => ({ ...s, submission: Date.now() });
+  const id = Number(formData.get("id"));
+  if (!Number.isInteger(id) || id <= 0) return done({ error: "Gasto no válido." });
+  const existing = await getExpense(id);
+  if (!existing) return done({ error: "Este gasto ya no existe (puede que se haya borrado)." });
+
+  const seccion = formData.get("seccion");
+  if (!isSection(seccion)) return done({ error: "Elige un apartado." });
+  const importe = parseAmount(String(formData.get("importe") ?? "").trim());
+  if (importe === null || importe <= 0) return done({ error: "Introduce un importe válido (por ejemplo, 45,90)." });
+  const pagadoPor = String(formData.get("pagadoPor") ?? "");
+  if (pagadoPor !== "1" && pagadoPor !== "2") return done({ error: "Indica quién ha pagado." });
+  const para = String(formData.get("para") ?? "pareja");
+  if (!["pareja", "1", "2"].includes(para)) return done({ error: "Indica para quién es el gasto." });
+
+  const couple = await getCouple();
+  const result = buildExpense(
+    {
+      fecha: String(formData.get("fecha") ?? ""),
+      seccion,
+      concepto: String(formData.get("concepto") ?? ""),
+      importe,
+      pagadoPor: Number(pagadoPor) as PersonId,
+      para: seccion === "ocio" && para !== "pareja" ? (Number(para) as PersonId) : "pareja",
+      saldado: existing.saldado,
+    },
+    { retention: getRetention(), salaries: couple.salaries },
+  );
+  if ("error" in result) return done({ error: result.error });
+
+  const expense = { ...result.expense };
+  const wasRent = existing.seccion === "fijos" && existing.concepto === RENT;
+  if (wasRent && expense.seccion === "fijos" && expense.concepto === RENT) expense.porcentaje1 = existing.porcentaje1;
+
+  const products = parseProducts(formData.get("productos"));
+  if ("error" in products) return done({ error: products.error });
+
+  const updated = await updateExpense({ ...expense, id, productos: products.productos });
+  if (!updated) return done({ error: "Este gasto ya no existe (puede que se haya borrado)." });
+  refresh();
+  return done({ ok: true });
 }
 
 // ---------- Pagado / pendiente ----------
