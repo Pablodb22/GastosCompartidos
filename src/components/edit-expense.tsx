@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import { editExpense, type EditExpenseState } from "@/app/actions";
 import { ProductsEditor, sumItems, toInput, type ItemRow } from "@/components/products-editor";
 import { beneficiaryOf, formatPct, parseAmount, type Expense } from "@/lib/calc";
-import { FIXED_TYPES, RENT, SECTIONS, type PersonId, type Section } from "@/lib/config";
+import { FIXED_TYPES, RENT, SECTIONS, canBeIndividual, type PersonId, type Section } from "@/lib/config";
 
 type Props = {
   expense: Expense;
@@ -272,7 +272,7 @@ function EditDialog({
             </div>
           </fieldset>
 
-          {section === "ocio" ? (
+          {canBeIndividual(section, concepto) ? (
             <fieldset>
               <legend className="label">¿Para quién es?</legend>
               <div className="grid grid-cols-3 gap-2">

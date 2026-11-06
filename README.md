@@ -6,13 +6,14 @@ Aplicación para que una pareja lleve sus gastos compartidos. Construida con Nex
 
 - **Datos de la pareja**: nombres y sueldo neto mensual de cada persona (se piden la primera vez y se pueden editar).
 - **Tres apartados de gastos**, cada uno con su formulario y su lista:
-  - **Gastos fijos**: alquiler, internet, agua y luz.
+  - **Gastos fijos**: alquiler, internet, agua, luz y gimnasio (el gimnasio puede ser de la pareja o de una sola persona).
   - **Compras de comida**.
   - **Ocio**: en pareja o individual (de una sola persona).
 - **Reparto**:
   - El **alquiler** se reparte en proporción a los sueldos. Ejemplo: 2.400 € y 1.600 € → 60 % / 40 %.
     El porcentaje se guarda en cada alquiler registrado, así que cambiar un sueldo no altera los meses anteriores.
-  - El **ocio individual** corre entero a cargo de quien lo disfruta; si lo paga la otra persona, queda como deuda.
+  - El **ocio individual** y el **gimnasio de una sola persona** corren enteros a cargo de quien los disfruta; si los
+    paga la otra persona, queda como deuda.
   - Todos los demás gastos se reparten **a partes iguales**.
 - **¿Quién debe a quién?**: saldo del mes, lo que ha pagado cada persona frente a lo que le corresponde y el desglose por apartado.
 - **Escanear ticket** 📸: haces una foto al ticket desde el móvil y la app lee el total, la fecha y el comercio.

@@ -2,7 +2,7 @@
 
 import { refresh } from "next/cache";
 import { parseAmount, type Expense } from "@/lib/calc";
-import { RENT, isSection, type PersonId } from "@/lib/config";
+import { RENT, canBeIndividual, isSection, type PersonId } from "@/lib/config";
 import { parseWorkbook } from "@/lib/excel";
 import {
   getCouple,
@@ -219,7 +219,10 @@ export async function editExpense(_prev: EditExpenseState, formData: FormData): 
       concepto: String(formData.get("concepto") ?? ""),
       importe,
       pagadoPor: Number(pagadoPor) as PersonId,
-      para: seccion === "ocio" && para !== "pareja" ? (Number(para) as PersonId) : "pareja",
+      para:
+        para !== "pareja" && canBeIndividual(seccion, String(formData.get("concepto") ?? "").trim())
+          ? (Number(para) as PersonId)
+          : "pareja",
       saldado: existing.saldado,
     },
     { retention: getRetention(), salaries: couple.salaries },
