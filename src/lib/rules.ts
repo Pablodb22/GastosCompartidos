@@ -1,5 +1,5 @@
 import { owedAmount, rentPercent, type Beneficiary, type Expense, type Product } from "./calc";
-import { FIXED_TYPES, RENT, type FixedType, type PersonId, type Section } from "./config";
+import { FIXED_TYPES, RENT, canBeIndividual, type FixedType, type PersonId, type Section } from "./config";
 import { formatDate, isValidDate, type Retention } from "./periods";
 
 export type ExpenseInput = {
@@ -49,8 +49,8 @@ export function buildExpense(
   }
   if (input.pagadoPor !== 1 && input.pagadoPor !== 2) return { error: "Indica quién ha pagado." };
 
-  if (input.para !== "pareja" && input.seccion !== "ocio") {
-    return { error: "Solo el ocio puede ser individual." };
+  if (input.para !== "pareja" && !canBeIndividual(input.seccion, concepto)) {
+    return { error: "Solo el ocio y el gimnasio pueden ser de una sola persona." };
   }
 
   let porcentaje1 = 50;

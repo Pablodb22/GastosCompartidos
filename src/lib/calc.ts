@@ -1,4 +1,4 @@
-import type { PersonId, Section } from "./config";
+import { canBeIndividual, type PersonId, type Section } from "./config";
 
 export type Expense = {
   id: number;
@@ -39,9 +39,9 @@ export type MonthSummary = {
 /** Para quién es un gasto: de la pareja (se reparte) o individual de una persona. */
 export type Beneficiary = "pareja" | PersonId;
 
-/** El ocio puede ser individual: el 100 % corresponde a una sola persona. */
-export function beneficiaryOf(e: Pick<Expense, "seccion" | "porcentaje1">): Beneficiary {
-  if (e.seccion === "ocio") {
+/** El ocio y el gimnasio pueden ser individuales: el 100 % corresponde a una sola persona. */
+export function beneficiaryOf(e: Pick<Expense, "seccion" | "concepto" | "porcentaje1">): Beneficiary {
+  if (canBeIndividual(e.seccion, e.concepto)) {
     if (e.porcentaje1 >= 100) return 1;
     if (e.porcentaje1 <= 0) return 2;
   }

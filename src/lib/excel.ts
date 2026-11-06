@@ -85,7 +85,7 @@ export async function buildWorkbook(expenses: Expense[], names: Names): Promise<
     ["Concepto", `En gastos fijos: ${FIXED_TYPES.join(", ")}. En el resto, texto libre.`],
     ["Importe", "Cantidad en euros, por ejemplo 45,90."],
     ["Pagado por", `${names[1]} o ${names[2]}.`],
-    ["Para", `Solo para ocio: «${COUPLE}» (a medias), «${names[1]}» o «${names[2]}» (individual). Vacío = ${COUPLE}.`],
+    ["Para", `Solo para ocio y gimnasio: «${COUPLE}» (a medias), «${names[1]}» o «${names[2]}» (individual). Vacío = ${COUPLE}.`],
     ["Estado", `«${PENDING}» (la otra persona aún no ha devuelto su parte) o «${PAID}». Vacío = ${PENDING}.`],
     ["Columnas «Parte»", "Son informativas: la app recalcula el reparto al importar."],
     ["Duplicados", "Los gastos que ya existen en la app se ignoran, así que puedes reimportar sin miedo."],

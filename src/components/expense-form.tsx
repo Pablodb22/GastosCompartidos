@@ -1,8 +1,8 @@
 "use client";
 
-import { useActionState, useEffect, useRef } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { createExpense, type ExpenseFormState } from "@/app/actions";
-import { FIXED_TYPES, type PersonId, type Section } from "@/lib/config";
+import { FIXED_TYPES, RENT, canBeIndividual, type PersonId, type Section } from "@/lib/config";
 
 type Props = {
   section: Section;
@@ -23,6 +23,9 @@ export function ExpenseForm({ section, names, defaultDate, minDate, maxDate }: P
   const amountRef = useRef<HTMLInputElement>(null);
   const v = state.values;
   const id = (name: string) => `${section}-${name}`;
+  // Tipo de gasto fijo elegido: el gimnasio pregunta para quién es.
+  const [fixedType, setFixedType] = useState<string>(v?.concepto ?? RENT);
+  const askWho = canBeIndividual(section, section === "fijos" ? fixedType : "");
 
   useEffect(() => {
     if (state.ok) amountRef.current?.focus();
@@ -54,7 +57,13 @@ export function ExpenseForm({ section, names, defaultDate, minDate, maxDate }: P
             {section === "fijos" ? "Tipo" : "Concepto"}
           </label>
           {section === "fijos" ? (
-            <select id={id("concepto")} name="concepto" defaultValue={v?.concepto ?? "Alquiler"} className="input">
+            <select
+              id={id("concepto")}
+              name="concepto"
+              defaultValue={v?.concepto ?? RENT}
+              onChange={(e) => setFixedType(e.target.value)}
+              className="input"
+            >
               {FIXED_TYPES.map((t) => (
                 <option key={t} value={t}>
                   {t}
@@ -94,7 +103,7 @@ export function ExpenseForm({ section, names, defaultDate, minDate, maxDate }: P
         </div>
       </div>
 
-      {section === "ocio" && (
+      {askWho && (
         <fieldset>
           <legend className="label">¿Para quién es?</legend>
           <div className="grid grid-cols-3 gap-2">

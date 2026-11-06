@@ -450,7 +450,7 @@ function SectionCard({
             💡{" "}
             {rentPct === null
               ? "El alquiler se reparte según los sueldos: indícalos en «Datos de la pareja»."
-              : `El alquiler se reparte según los sueldos (${names[1]} ${formatPct(rentPct)} · ${names[2]} ${formatPct(100 - rentPct)}). Internet, agua y luz, a partes iguales.`}
+              : `El alquiler se reparte según los sueldos (${names[1]} ${formatPct(rentPct)} · ${names[2]} ${formatPct(100 - rentPct)}). Internet, agua, luz y gimnasio, a partes iguales; el gimnasio también puede ser de una sola persona.`}
           </p>
         )}
         {section === "comida" && <p className="mt-3 text-xs font-semibold text-slate-500">⚖️ Se reparte a partes iguales.</p>}
