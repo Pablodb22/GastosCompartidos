@@ -5,9 +5,9 @@ import { connection } from "next/server";
 import { AppHeader } from "@/components/app-header";
 import { RegenerateWrapped } from "@/components/regenerate-wrapped";
 import { formatEUR } from "@/lib/calc";
-import { computeWrapped, ensureWrapped, listWrappedYears, purgeExpired } from "@/lib/expenses";
+import { ensureWrapped, purgeExpired } from "@/lib/expenses";
 import { getRetention } from "@/lib/periods";
-import { isWrappedUnlocked, wrappedUnlockDate, type WrappedData } from "@/lib/wrapped";
+import { availableWrappedYear, canBuildWrapped, wrappedStart, wrappedEnd, type WrappedData } from "@/lib/wrapped";
 
 export const metadata: Metadata = { title: "Wrapped · Cuentas en pareja" };
 
@@ -22,17 +22,24 @@ export default function WrappedPage() {
           </p>
           <h2 className="font-display text-gradient mt-2 text-3xl font-semibold">Vuestro Wrapped</h2>
           <p className="mx-auto mt-2 max-w-md text-sm font-semibold text-violet-900/60">
-            Cada 1 de diciembre os preparamos un resumen de vuestro año, con humor y en formato historias. Se guarda para
-            siempre: podéis volver a verlo cuando queráis, aunque los gastos antiguos se borren.
+            Cada 1 de diciembre os preparamos un resumen de vuestro año, con humor y en formato historias. Se queda
+            disponible hasta el 31 de octubre y el 1 de noviembre se borra.
           </p>
         </div>
         <Suspense fallback={<div className="h-56 animate-pulse rounded-3xl bg-violet-100/70" aria-busy="true" />}>
-          <Cards />
+          <Content />
         </Suspense>
       </main>
     </>
   );
 }
+
+const longDate = (iso: string) => {
+  const [y, m, d] = iso.split("-").map(Number);
+  return new Intl.DateTimeFormat("es-ES", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" }).format(
+    Date.UTC(y, m - 1, d),
+  );
+};
 
 const daysUntil = (from: string, to: string) => {
   const ms = (iso: string) => {
@@ -42,40 +49,41 @@ const daysUntil = (from: string, to: string) => {
   return Math.max(0, Math.round((ms(to) - ms(from)) / 86_400_000));
 };
 
-const formatDay = (iso: string) => {
-  const [y, m, d] = iso.split("-").map(Number);
-  return new Intl.DateTimeFormat("es-ES", { day: "numeric", month: "long", timeZone: "UTC" }).format(Date.UTC(y, m - 1, d));
-};
-
-async function Cards() {
+async function Content() {
   await connection(); // depende de la fecha de hoy: se calcula en cada visita, no al compilar
   const retention = getRetention();
   await purgeExpired(retention);
-  const saved = await listWrappedYears();
-  const years = [...new Set([retention.currentYear, retention.currentYear - 1, ...saved])].sort((a, b) => b - a);
 
-  const cards: React.ReactNode[] = [];
-  for (const year of years) {
-    if (isWrappedUnlocked(year, retention.today)) {
-      const data = await ensureWrapped(year, retention.today);
-      if (data) cards.push(<ReadyCard key={year} data={data} canRegenerate={retention.years.includes(year)} />);
-    } else {
-      // Año en curso, antes del 1 de diciembre: bloqueado, con vista previa si ya hay gastos.
-      const preview = await computeWrapped(year, { preview: true, today: retention.today });
-      cards.push(
-        <LockedCard key={year} year={year} days={daysUntil(retention.today, wrappedUnlockDate(year))} count={preview?.count ?? 0} />,
-      );
-    }
+  const year = availableWrappedYear(retention.today);
+  if (year === null) {
+    // Del 1 al 30 de noviembre no hay Wrapped: el anterior ya se borró y el nuevo llega el 1 de diciembre.
+    const days = daysUntil(retention.today, `${retention.currentYear}-12-01`);
+    return (
+      <section className="card p-6 text-center">
+        <p className="text-4xl" aria-hidden="true">
+          ⏳
+        </p>
+        <h3 className="font-display mt-1 text-2xl font-semibold text-violet-950">Todavía no está listo</h3>
+        <p className="mt-1 text-sm font-bold text-violet-600">
+          Se crea el 1 de diciembre · {days === 1 ? "falta 1 día" : `faltan ${days} días`}
+        </p>
+        <p className="mt-3 text-xs font-semibold text-slate-500">
+          Contará los gastos desde el 1 de diciembre de {retention.currentYear - 1} hasta el 30 de noviembre.
+        </p>
+      </section>
+    );
   }
 
-  if (cards.length === 0) {
+  const data = await ensureWrapped(year, retention.today);
+  if (!data) {
     return (
       <p className="rounded-3xl bg-white/80 px-6 py-10 text-center text-sm font-semibold text-slate-500">
-        🌱 Todavía no hay gastos para preparar un Wrapped. ¡Empezad a apuntar!
+        🌱 No hay gastos entre el {longDate(wrappedStart(year))} y el {longDate(wrappedEnd(year))}, así que no hay Wrapped
+        este año.
       </p>
     );
   }
-  return <div className="space-y-5">{cards}</div>;
+  return <ReadyCard data={data} canRegenerate={canBuildWrapped(year, retention.today)} />;
 }
 
 function ReadyCard({ data, canRegenerate }: { data: WrappedData; canRegenerate: boolean }) {
@@ -91,7 +99,13 @@ function ReadyCard({ data, canRegenerate }: { data: WrappedData; canRegenerate: 
         Wrapped {data.year}
       </h3>
       <p className="mt-1 text-sm font-semibold text-white/90">
-        {formatDay(data.from)} – {formatDay(data.to)} · {data.count} gastos · {formatEUR(data.total)}
+        {longDate(data.from)} – {longDate(data.to)}
+      </p>
+      <p className="text-sm font-semibold text-white/90">
+        {data.count} gastos · {formatEUR(data.total)}
+      </p>
+      <p className="mt-2 text-xs font-bold text-white/80">
+        Disponible hasta el 31 de octubre de {data.year + 1}; el 1 de noviembre se borra.
       </p>
       <div className="mt-5 flex flex-wrap items-center gap-3">
         <Link
@@ -102,37 +116,6 @@ function ReadyCard({ data, canRegenerate }: { data: WrappedData; canRegenerate: 
         </Link>
         {canRegenerate && <RegenerateWrapped year={data.year} />}
       </div>
-    </section>
-  );
-}
-
-function LockedCard({ year, days, count }: { year: number; days: number; count: number }) {
-  return (
-    <section aria-labelledby={`wrapped-${year}`} className="card p-6 text-center">
-      <p className="text-4xl" aria-hidden="true">
-        🔒
-      </p>
-      <h3 id={`wrapped-${year}`} className="font-display mt-1 text-2xl font-semibold text-violet-950">
-        Wrapped {year}
-      </h3>
-      <p className="mt-1 text-sm font-bold text-violet-600">
-        Se desbloquea el 1 de diciembre · {days === 1 ? "falta 1 día" : `faltan ${days} días`}
-      </p>
-      {count > 0 ? (
-        <>
-          <p className="mt-3 text-xs font-semibold text-slate-500">
-            Mientras tanto, podéis echarle un vistazo con los {count} gastos de hoy. El de verdad se prepara el 1 de diciembre.
-          </p>
-          <Link
-            href={`/wrapped/ver?anio=${year}&vista=previa`}
-            className="btn-secondary mt-4"
-          >
-            👀 Vista previa
-          </Link>
-        </>
-      ) : (
-        <p className="mt-3 text-xs font-semibold text-slate-500">Todavía no hay gastos este año. ¡A apuntar!</p>
-      )}
     </section>
   );
 }

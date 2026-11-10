@@ -35,14 +35,18 @@ Aplicación para que una pareja lleve sus gastos compartidos. Construida con Nex
   alquiler conserva el % de sueldos con el que se registró.
 - **Navegar por dos años**: el selector de la parte superior tiene el año y los doce meses; los meses sin gastos se ven
   apagados y los futuros no se pueden elegir. Sirve igual en Cuentas, Gráficos y la exportación a Excel.
-- **🎁 Wrapped** (pestaña «Wrapped»): cada **1 de diciembre** se prepara un resumen del año al estilo Spotify, con humor y
-  en formato **historias** (toque a la derecha: siguiente · a la izquierda: anterior · mantener pulsado: pausa; también
-  con flechas y espacio en el ordenador). Cuenta cuánto gastasteis, el mes y el día más caros, vuestro día de la semana,
-  el sitio favorito, el plan y el producto estrella, quién ha sacado más la tarjeta, la parte de cada uno, la mayor
-  racha sin gastar, las cuentas pendientes y vuestro «perfil financiero».
-  - El periodo es del 1 de enero al 30 de noviembre. Antes del 1 de diciembre hay una **vista previa** con los gastos de hoy.
-  - Se **guarda** (tabla `wrapped_anual`) y no cambia aunque luego se editen o borren gastos; se puede volver a verlo
-    cuando se quiera. Si se añaden gastos que faltaban, «Volver a generar» lo recalcula.
+- **🎁 Wrapped**: un resumen del año al estilo Spotify, con humor y en formato **historias** (toque a la derecha:
+  siguiente · a la izquierda: anterior · mantener pulsado: pausa; también con flechas y espacio en el ordenador). Cuenta
+  cuánto gastasteis, el mes y el día más caros, vuestro día de la semana, el sitio favorito, el plan y el producto
+  estrella, quién ha sacado más la tarjeta, la parte de cada uno, la mayor racha sin gastar, las cuentas pendientes y
+  vuestro «perfil financiero».
+  - **Ciclo** (ejemplo con 2026): cuenta los gastos del 1 de diciembre de 2025 al 30 de noviembre de 2026. Se crea el
+    **1 de diciembre de 2026** y está disponible hasta el 31 de octubre de 2027; el **1 de noviembre de 2027 se borra**.
+    Los gastos que apuntéis desde el 1 de diciembre de 2026 entran en el Wrapped del año siguiente.
+  - La pestaña «Wrapped» **solo aparece del 1 de diciembre al 31 de octubre**. En noviembre no hay Wrapped.
+  - Una vez creado se guarda (tabla `wrapped_anual`) y no cambia aunque luego se editen o borren gastos. Si añadís
+    gastos que faltaban, «Volver a generar» lo recalcula, pero solo hasta el 31 de diciembre: el 1 de enero se borra el
+    diciembre anterior y ya no saldría completo.
   - El primer año solo cuenta los gastos que haya en la app: si empezasteis a apuntar en noviembre, será corto.
 - **Pendiente / pagado**: cada gasto que genera deuda aparece como «⏳ Pendiente». Cuando la otra persona devuelve su parte,
   se pulsa y pasa a «✅ Pagado» (se puede deshacer). Los gastos pagados **no se borran**: siguen en la lista y en los totales,
@@ -65,7 +69,7 @@ Se conservan **dos años naturales**: el actual y el anterior. **El 1 de enero s
 
 El borrado lo hace una tarea programada diaria de Vercel (`vercel.json`, a las 04:00 UTC) que llama a `/api/cron/purge`. Como respaldo, la limpieza también se aplica al abrir la aplicación. Las fechas se calculan en la zona horaria `Europe/Madrid`.
 
-**Antes de borrar un año se guarda su Wrapped**, así que sigue pudiéndose ver aunque sus gastos ya no existan. Si necesitas conservar los gastos en sí, exporta el Excel de cada mes antes del 1 de enero.
+Si necesitas conservar los gastos en sí, exporta el Excel de cada mes antes del 1 de enero. El Wrapped tiene su propio ciclo (se borra el 1 de noviembre; ver arriba).
 
 ## Variables de entorno
 

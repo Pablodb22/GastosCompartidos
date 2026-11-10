@@ -62,6 +62,10 @@ const dayMonth = (iso: string) => {
   const [y, m, d] = iso.split("-").map(Number);
   return new Intl.DateTimeFormat("es-ES", { day: "numeric", month: "long", timeZone: "UTC" }).format(Date.UTC(y, m - 1, d));
 };
+const dayMonthYear = (iso: string) => {
+  const [y, m, d] = iso.split("-").map(Number);
+  return new Intl.DateTimeFormat("es-ES", { day: "numeric", month: "long", year: "numeric", timeZone: "UTC" }).format(Date.UTC(y, m - 1, d));
+};
 const fullDay = (iso: string) => {
   const [y, m, d] = iso.split("-").map(Number);
   return new Intl.DateTimeFormat("es-ES", { weekday: "long", day: "numeric", month: "long", timeZone: "UTC" }).format(
@@ -174,16 +178,14 @@ export function buildSlides(d: WrappedData): Slide[] {
     id: "intro",
     theme: "violet",
     emoji: "🎁",
-    kicker: d.preview ? "VISTA PREVIA" : `${n1} & ${n2}`,
+    kicker: `${n1} & ${n2}`,
     title: `Vuestro Wrapped ${d.year}`,
     text: choose("intro", [
       "Hemos revisado cada euro. Sí, también ese. 👀",
       "Spotify tiene vuestras canciones. Nosotros, vuestros tickets. 🧾",
       "Preparaos: esto va a doler un poquito. Con cariño. 💜",
     ]),
-    footnote: d.preview
-      ? "Con los gastos hasta hoy. El de verdad llega el 1 de diciembre."
-      : `${dayMonth(d.from)} – ${dayMonth(d.to)} · ${plural(d.count, "gasto", "gastos")}`,
+    footnote: `${dayMonthYear(d.from)} – ${dayMonthYear(d.to)} · ${plural(d.count, "gasto", "gastos")}`,
     ms: 5500,
   });
 
@@ -191,14 +193,15 @@ export function buildSlides(d: WrappedData): Slide[] {
   {
     const eq = choose("equivalent", EQUIVALENTS);
     let footnote: string | undefined;
-    if (d.prev && d.prev.coverageMonths >= 6 && d.coverageMonths >= 6 && d.prev.total > 0) {
-      const delta = Math.round(((d.total - d.prev.total) / d.prev.total) * 100);
+    // Se compara enero–noviembre de este año con enero–noviembre del anterior (lo que hay de los dos).
+    if (d.prev && d.prev.coverageMonths >= 6 && d.prev.currentMonths >= 6 && d.prev.total > 0) {
+      const delta = Math.round(((d.prev.currentTotal - d.prev.total) / d.prev.total) * 100);
       footnote =
         delta > 5
-          ? `Un ${delta} % más que en ${d.prev.year}. La inflación os mira con orgullo. 📈`
+          ? `Un ${delta} % más que en ${d.prev.year} (de enero a noviembre). La inflación os mira con orgullo. 📈`
           : delta < -5
-            ? `Un ${Math.abs(delta)} % menos que en ${d.prev.year}. ¡Esa es la actitud (y el tupper)! 📉`
-            : `Casi igual que en ${d.prev.year}. Constantes hasta en esto. 🎯`;
+            ? `Un ${Math.abs(delta)} % menos que en ${d.prev.year} (de enero a noviembre). ¡Esa es la actitud (y el tupper)! 📉`
+            : `Casi igual que en ${d.prev.year} (de enero a noviembre). Constantes hasta en esto. 🎯`;
     }
     push({
       id: "total",
@@ -512,7 +515,7 @@ export function buildSlides(d: WrappedData): Slide[] {
         kicker: `${d.names[debtor]} le debe a ${d.names[creditor]}`,
         big: { value: Math.abs(balance), kind: "eur" },
         text: "Esto no es una amenaza: es un recordatorio con cariño. 💌",
-        footnote: `${plural(count, "gasto pendiente", "gastos pendientes")}${settled > 0 ? ` · ${eur(settled)} ya devueltos` : ""}${d.preview ? " · a día de hoy" : ""}.`,
+        footnote: `${plural(count, "gasto pendiente", "gastos pendientes")}${settled > 0 ? ` · ${eur(settled)} ya devueltos` : ""}.`,
       });
     }
   }

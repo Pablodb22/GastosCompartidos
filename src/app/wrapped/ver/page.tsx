@@ -2,8 +2,9 @@ import { Suspense } from "react";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { WrappedStory } from "@/components/wrapped-story";
-import { computeWrapped, ensureWrapped, purgeExpired } from "@/lib/expenses";
+import { ensureWrapped, purgeExpired } from "@/lib/expenses";
 import { getRetention } from "@/lib/periods";
+import { wrappedExpiryDate, wrappedUnlockDate } from "@/lib/wrapped";
 import { buildSlides, shareText } from "@/lib/wrapped-slides";
 
 export const metadata: Metadata = { title: "Wrapped · Cuentas en pareja" };
@@ -17,31 +18,23 @@ export default function WrappedViewPage({ searchParams }: PageProps<"/wrapped/ve
 }
 
 async function Viewer({ searchParams }: { searchParams: PageProps<"/wrapped/ver">["searchParams"] }) {
-  const { anio, vista } = await searchParams;
+  const { anio } = await searchParams;
   const retention = getRetention();
   await purgeExpired(retention);
 
   const year = typeof anio === "string" && /^\d{4}$/.test(anio) ? Number(anio) : NaN;
   if (Number.isNaN(year)) return <Screen message="Ese Wrapped no existe." emoji="🤷" back />;
 
-  // El definitivo se guarda la primera vez (desde el 1 de diciembre) y a partir de ahí es siempre el mismo.
-  let data = await ensureWrapped(year, retention.today);
-  // Antes del 1 de diciembre solo se puede ver una vista previa del año en curso (no se guarda).
-  if (!data && vista === "previa" && year === retention.currentYear) {
-    data = await computeWrapped(year, { preview: true, today: retention.today });
-  }
+  // Solo se puede ver el Wrapped disponible: del 1 de diciembre al 31 de octubre del año siguiente.
+  const data = await ensureWrapped(year, retention.today);
   if (!data) {
-    return (
-      <Screen
-        emoji="🔒"
-        message={
-          year === retention.currentYear
-            ? "Este Wrapped se desbloquea el 1 de diciembre."
-            : `No hay gastos de ${year} para preparar un Wrapped.`
-        }
-        back
-      />
-    );
+    const message =
+      retention.today < wrappedUnlockDate(year)
+        ? "Este Wrapped se crea el 1 de diciembre."
+        : retention.today >= wrappedExpiryDate(year)
+          ? "Este Wrapped ya no está disponible: se borró el 1 de noviembre."
+          : "No hay gastos para preparar este Wrapped.";
+    return <Screen emoji="🔒" message={message} back />;
   }
 
   return <WrappedStory slides={buildSlides(data)} year={year} shareText={shareText(data)} />;

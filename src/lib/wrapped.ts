@@ -1,25 +1,54 @@
 import { beneficiaryOf, summarize, type Expense } from "./calc";
 import { GYM, RENT, type PersonId, type Section } from "./config";
-import { lastDayOfMonth, shiftMonth, type MonthKey } from "./periods";
+import { YEARS_KEPT, lastDayOfMonth, shiftMonth, type MonthKey } from "./periods";
 import { shareOf } from "./stats";
 
 /**
  * Estadísticas del «Wrapped» anual. Función pura (sin base de datos ni
- * navegador): recibe los gastos y devuelve un resumen que se guarda tal cual
- * (JSON), para poder volver a verlo aunque los gastos antiguos se borren.
+ * navegador): recibe los gastos y devuelve un resumen que se guarda tal cual (JSON).
  *
- * El periodo es del 1 de enero al 30 de noviembre (como hace Spotify): el 1 de
- * diciembre se genera y se guarda. La vista previa usa los datos hasta hoy.
+ * Ciclo del Wrapped de un año (ejemplo con 2026):
+ *  - Cuenta los gastos del 1 de diciembre de 2025 al 30 de noviembre de 2026. Los gastos
+ *    desde el 1 de diciembre de 2026 son del Wrapped del año siguiente.
+ *  - Se crea el 1 de diciembre de 2026 y está disponible hasta el 31 de octubre de 2027;
+ *    el 1 de noviembre de 2027 se borra.
  */
 
-export const WRAPPED_VERSION = 1;
+export const WRAPPED_VERSION = 2;
 
-/** Último día del periodo de un Wrapped definitivo. */
+/** Primer día del periodo de un Wrapped: el 1 de diciembre del año anterior. */
+export const wrappedStart = (year: number) => `${year - 1}-12-01`;
+/** Último día del periodo de un Wrapped: el 30 de noviembre. */
 export const wrappedEnd = (year: number) => `${year}-11-30`;
-/** Día en que se desbloquea el Wrapped de un año. */
+/** Día en que se crea y se desbloquea el Wrapped de un año. */
 export const wrappedUnlockDate = (year: number) => `${year}-12-01`;
-/** ¿Ya se puede ver el Wrapped definitivo de ese año? (desde el 1 de diciembre) */
-export const isWrappedUnlocked = (year: number, today: string) => today >= wrappedUnlockDate(year);
+/** Día en que se borra el Wrapped de un año. */
+export const wrappedExpiryDate = (year: number) => `${year + 1}-11-01`;
+
+/** ¿Está disponible el Wrapped de ese año? Del 1 de diciembre al 31 de octubre del año siguiente. */
+export const isWrappedAvailable = (year: number, today: string) =>
+  today >= wrappedUnlockDate(year) && today < wrappedExpiryDate(year);
+
+/** Año del Wrapped disponible hoy, o null (del 1 al 30 de noviembre no hay ninguno). */
+export function availableWrappedYear(today: string): number | null {
+  const y = Number(today.slice(0, 4));
+  return [y, y - 1].find((c) => isWrappedAvailable(c, today)) ?? null;
+}
+
+/**
+ * ¿Se puede (re)calcular ahora? Hace falta que esté disponible y que todo su periodo siga
+ * guardado: el 1 de enero se borra el diciembre anterior, así que después ya no saldría completo.
+ */
+export function canBuildWrapped(year: number, today: string): boolean {
+  const oldestKept = `${Number(today.slice(0, 4)) - (YEARS_KEPT - 1)}-01-01`;
+  return isWrappedAvailable(year, today) && wrappedStart(year) >= oldestKept;
+}
+
+/** Último año cuyo Wrapped ya ha caducado (se borra el 1 de noviembre del año siguiente). */
+export function lastExpiredWrappedYear(today: string): number {
+  const y = Number(today.slice(0, 4));
+  return today >= `${y}-11-01` ? y - 1 : y - 2;
+}
 
 export type RecordItem = { concept: string; date: string; amount: number };
 export type RankedItem = { name: string; times: number; total: number };
@@ -43,7 +72,6 @@ export type WrappedData = {
   from: string;
   /** Último día del periodo. */
   to: string;
-  preview: boolean;
   names: Record<PersonId, string>;
   count: number;
   total: number;
@@ -65,7 +93,11 @@ export type WrappedData = {
   /** Positivo: la persona 2 debe a la 1. Negativo: al revés. */
   pending: { balance: number; count: number; settled: number };
   streak: { days: number; from: string; to: string } | null;
-  prev: { year: number; total: number; coverageMonths: number } | null;
+  /**
+   * Comparación con el año anterior sobre el mismo tramo (enero–noviembre de cada año), que es
+   * lo que hay guardado de los dos. Se omite si cualquiera de los dos tiene pocos meses.
+   */
+  prev: { year: number; total: number; coverageMonths: number; currentTotal: number; currentMonths: number } | null;
 };
 
 const round2 = (n: number) => Math.round(n * 100) / 100;
@@ -135,14 +167,13 @@ export function buildWrapped(
   opts: {
     year: number;
     names: Record<PersonId, string>;
-    /** Último día del periodo («YYYY-MM-DD»). */
-    to: string;
-    preview: boolean;
+    /** Enero–noviembre del año anterior (ver `periodSummary`), si hay datos. */
     prev?: { year: number; total: number; coverageMonths: number } | null;
   },
 ): WrappedData | null {
-  const { year, names, to, preview } = opts;
-  const list = all.filter((e) => e.fecha >= `${year}-01-01` && e.fecha <= to);
+  const { year, names } = opts;
+  const to = wrappedEnd(year);
+  const list = all.filter((e) => e.fecha >= wrappedStart(year) && e.fecha <= to);
   if (list.length === 0) return null;
 
   const from = list.reduce((min, e) => (e.fecha < min ? e.fecha : min), list[0].fecha);
@@ -289,7 +320,6 @@ export function buildWrapped(
     year,
     from,
     to,
-    preview,
     names,
     count: list.length,
     total,
@@ -308,6 +338,12 @@ export function buildWrapped(
     people,
     pending: { balance: overall.balance, count: overall.pendingCount, settled: overall.settled },
     streak,
-    prev: opts.prev ?? null,
+    prev: opts.prev
+      ? (() => {
+          const janNov = list.filter((e) => e.fecha >= `${year}-01-01`);
+          const current = periodSummary(janNov);
+          return { ...opts.prev, currentTotal: current.total, currentMonths: current.coverageMonths };
+        })()
+      : null,
   };
 }

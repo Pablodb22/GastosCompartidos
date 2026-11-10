@@ -20,7 +20,7 @@ import {
   updateExpense,
 } from "@/lib/expenses";
 import { getRetention, isValidMonthKey } from "@/lib/periods";
-import { isWrappedUnlocked } from "@/lib/wrapped";
+import { canBuildWrapped } from "@/lib/wrapped";
 import { buildExpense, parseProducts } from "@/lib/rules";
 
 // ---------- Pareja ----------
@@ -248,14 +248,13 @@ export async function editExpense(_prev: EditExpenseState, formData: FormData): 
 // ---------- Wrapped ----------
 
 /**
- * Vuelve a calcular el Wrapped de un año con los gastos actuales (por ejemplo, tras importar
- * gastos que faltaban). Solo si el año ya está desbloqueado y sus gastos siguen guardados.
+ * Vuelve a calcular el Wrapped con los gastos actuales (por ejemplo, tras importar gastos que
+ * faltaban). Solo mientras esté disponible y todo su periodo siga guardado (hasta el 31 de diciembre).
  */
 export async function regenerateWrapped(formData: FormData): Promise<void> {
   const year = Number(formData.get("anio"));
-  const retention = getRetention();
-  if (!Number.isInteger(year) || !retention.years.includes(year) || !isWrappedUnlocked(year, retention.today)) return;
-  const data = await computeWrapped(year, { preview: false, today: retention.today });
+  if (!Number.isInteger(year) || !canBuildWrapped(year, getRetention().today)) return;
+  const data = await computeWrapped(year);
   if (data) await saveWrappedSnapshot(year, data, true);
   refresh();
 }

@@ -21,7 +21,7 @@ import {
 import { SECTIONS, type PersonId, type Section } from "@/lib/config";
 import { ensureWrapped, getCouple, listExpenses, listMonthsWithData, purgeExpired, type Couple } from "@/lib/expenses";
 import { WrappedBanner } from "@/components/wrapped-banner";
-import { isWrappedUnlocked } from "@/lib/wrapped";
+import { availableWrappedYear } from "@/lib/wrapped";
 import { MonthPicker } from "@/components/month-picker";
 import { formatDate, formatMonth, getRetention, lastDayOfMonth, type Retention } from "@/lib/periods";
 
@@ -78,9 +78,12 @@ async function Dashboard({ searchParams }: { searchParams: PageProps<"/">["searc
 
   const month = typeof mes === "string" && retention.months.includes(mes) ? mes : retention.currentMonth;
   const [expenses, monthsWithData] = await Promise.all([listExpenses(month), listMonthsWithData()]);
-  // En diciembre (con el Wrapped ya desbloqueado y con gastos), aviso en la portada.
+  // En diciembre, aviso en la portada del Wrapped que se acaba de crear.
+  const wrappedYear = availableWrappedYear(retention.today);
   const wrappedReady =
-    isWrappedUnlocked(retention.currentYear, retention.today) && (await ensureWrapped(retention.currentYear, retention.today)) !== null;
+    wrappedYear !== null &&
+    retention.today < `${wrappedYear + 1}-01-01` &&
+    (await ensureWrapped(wrappedYear, retention.today)) !== null;
   const summary = summarize(expenses);
   const names = couple.names;
   const defaultDate = month === retention.currentMonth ? retention.today : lastDayOfMonth(month);
@@ -88,7 +91,7 @@ async function Dashboard({ searchParams }: { searchParams: PageProps<"/">["searc
 
   return (
     <div className="space-y-6">
-      {wrappedReady && <WrappedBanner year={retention.currentYear} />}
+      {wrappedReady && wrappedYear !== null && <WrappedBanner year={wrappedYear} />}
       <MonthBar
         retention={retention}
         month={month}

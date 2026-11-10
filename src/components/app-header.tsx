@@ -1,13 +1,13 @@
 import Link from "next/link";
 import { Logo } from "@/components/logo";
+import { WrappedNavLink } from "@/components/wrapped-nav-link";
 
 const TABS = [
   { href: "/", label: "Cuentas", emoji: "💸", key: "cuentas" },
   { href: "/graficos", label: "Gráficos", emoji: "📊", key: "graficos" },
-  { href: "/wrapped", label: "Wrapped", emoji: "🎁", key: "wrapped" },
 ] as const;
 
-export function AppHeader({ active }: { active: (typeof TABS)[number]["key"] }) {
+export function AppHeader({ active }: { active: (typeof TABS)[number]["key"] | "wrapped" }) {
   return (
     <header>
       <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-4 pt-6 pb-2 sm:px-6">
@@ -33,6 +33,7 @@ export function AppHeader({ active }: { active: (typeof TABS)[number]["key"] }) 
               <span aria-hidden="true">{t.emoji}</span> {t.label}
             </Link>
           ))}
+          <WrappedNavLink active={active === "wrapped"} />
         </nav>
       </div>
     </header>

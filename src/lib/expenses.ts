@@ -3,7 +3,16 @@ import { db } from "./db";
 import type { Expense } from "./calc";
 import type { PersonId, Section } from "./config";
 import { shiftMonth, type MonthKey, type Retention } from "./periods";
-import { buildWrapped, isWrappedUnlocked, periodSummary, wrappedEnd, type WrappedData } from "./wrapped";
+import {
+  buildWrapped,
+  canBuildWrapped,
+  isWrappedAvailable,
+  lastExpiredWrappedYear,
+  periodSummary,
+  wrappedEnd,
+  wrappedStart,
+  type WrappedData,
+} from "./wrapped";
 
 // ---------- Pareja ----------
 
@@ -248,13 +257,6 @@ export async function getWrappedSnapshot(year: number): Promise<WrappedData | nu
   return rows[0]?.datos ?? null;
 }
 
-/** Años que tienen un Wrapped guardado, del más reciente al más antiguo. */
-export async function listWrappedYears(): Promise<number[]> {
-  const sql = await db();
-  const rows = (await sql`SELECT anio FROM wrapped_anual ORDER BY anio DESC`) as { anio: number }[];
-  return rows.map((r) => Number(r.anio));
-}
-
 /** Guarda el Wrapped de un año. Sin `overwrite`, si ya existe se respeta el guardado. */
 export async function saveWrappedSnapshot(year: number, data: WrappedData, overwrite = false): Promise<void> {
   const sql = await db();
@@ -269,53 +271,47 @@ export async function saveWrappedSnapshot(year: number, data: WrappedData, overw
   }
 }
 
-/** Resumen del año anterior (guardado o calculado) para comparar. */
-async function previousYearSummary(year: number): Promise<WrappedData["prev"]> {
-  const saved = await getWrappedSnapshot(year - 1);
-  if (saved) return { year: year - 1, total: saved.total, coverageMonths: saved.coverageMonths };
+/** Enero–noviembre del año anterior, para comparar con el mismo tramo de este año. */
+async function previousYearSummary(year: number): Promise<{ year: number; total: number; coverageMonths: number } | null> {
   const rows = await listExpensesDetailed(`${year - 1}-01-01`, wrappedEnd(year - 1));
   return rows.length ? { year: year - 1, ...periodSummary(rows) } : null;
 }
 
 /**
- * Calcula el Wrapped de un año a partir de los gastos. Definitivo: del 1 de enero al 30 de
- * noviembre. Vista previa: hasta hoy (no se guarda). Devuelve null si no hay gastos.
+ * Calcula el Wrapped de un año con los gastos actuales: del 1 de diciembre del año anterior al
+ * 30 de noviembre. Devuelve null si no hay gastos en ese periodo.
  */
-export async function computeWrapped(year: number, opts: { preview: boolean; today: string }): Promise<WrappedData | null> {
-  const to = opts.preview ? opts.today : wrappedEnd(year);
+export async function computeWrapped(year: number): Promise<WrappedData | null> {
   const [rows, couple, prev] = await Promise.all([
-    listExpensesDetailed(`${year}-01-01`, to),
+    listExpensesDetailed(wrappedStart(year), wrappedEnd(year)),
     getCouple(),
-    // En la vista previa (periodo más corto) no se compara con el año anterior: no sería justo.
-    opts.preview ? Promise.resolve(null) : previousYearSummary(year),
+    previousYearSummary(year),
   ]);
-  return buildWrapped(rows, { year, names: couple.names, to, preview: opts.preview, prev });
+  return buildWrapped(rows, { year, names: couple.names, prev });
 }
 
 /**
- * Devuelve el Wrapped guardado de un año; si no existe y ya se ha desbloqueado
- * (1 de diciembre), lo genera y lo guarda. Así queda fijo y se puede volver a ver.
+ * Devuelve el Wrapped de un año si está disponible (del 1 de diciembre al 31 de octubre del año
+ * siguiente). Si aún no existe, lo crea y lo guarda mientras su periodo siga completo en la base
+ * de datos; a partir de ahí es siempre el mismo.
  */
 export async function ensureWrapped(year: number, today: string): Promise<WrappedData | null> {
+  if (!isWrappedAvailable(year, today)) return null;
   const saved = await getWrappedSnapshot(year);
   if (saved) return saved;
-  if (!isWrappedUnlocked(year, today)) return null;
-  const data = await computeWrapped(year, { preview: false, today });
+  if (!canBuildWrapped(year, today)) return null;
+  const data = await computeWrapped(year);
   if (data) await saveWrappedSnapshot(year, data);
   return data;
 }
 
 /**
- * Elimina todos los gastos anteriores a la fecha de corte. Es idempotente.
- * Antes de borrar un año se guarda su Wrapped, para que no se pierda con los gastos.
+ * Elimina todos los gastos anteriores a la fecha de corte y los Wrapped caducados (el del año Y
+ * se borra el 1 de noviembre de Y+1). Es idempotente.
  */
 export async function purgeExpired(retention: Retention): Promise<number> {
   const sql = await db();
-  const dueYears = (await sql`
-    SELECT DISTINCT EXTRACT(YEAR FROM fecha)::int AS y FROM gastos WHERE fecha < ${retention.cutoffDate}::date
-  `) as { y: number }[];
-  for (const { y } of dueYears) await ensureWrapped(Number(y), retention.today);
-
+  await sql`DELETE FROM wrapped_anual WHERE anio <= ${lastExpiredWrappedYear(retention.today)}`;
   const rows = (await sql`
     DELETE FROM gastos WHERE fecha < ${retention.cutoffDate}::date RETURNING id
   `) as { id: string }[];
