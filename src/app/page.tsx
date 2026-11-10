@@ -1,5 +1,4 @@
 import { Suspense } from "react";
-import Link from "next/link";
 import { AppHeader } from "@/components/app-header";
 import { CoupleForm } from "@/components/couple-form";
 import { ExpenseForm } from "@/components/expense-form";
@@ -20,8 +19,11 @@ import {
   type Totals,
 } from "@/lib/calc";
 import { SECTIONS, type PersonId, type Section } from "@/lib/config";
-import { getCouple, listExpenses, purgeExpired, type Couple } from "@/lib/expenses";
-import { formatDate, formatMonth, formatShortMonth, getRetention, lastDayOfMonth, type Retention } from "@/lib/periods";
+import { ensureWrapped, getCouple, listExpenses, listMonthsWithData, purgeExpired, type Couple } from "@/lib/expenses";
+import { WrappedBanner } from "@/components/wrapped-banner";
+import { availableWrappedYear } from "@/lib/wrapped";
+import { MonthPicker } from "@/components/month-picker";
+import { formatDate, formatMonth, getRetention, lastDayOfMonth, type Retention } from "@/lib/periods";
 
 type Names = Record<PersonId, string>;
 
@@ -61,7 +63,7 @@ export default function Home({ searchParams }: PageProps<"/">) {
       </main>
 
       <footer className="mx-auto w-full max-w-6xl px-4 pb-8 text-center text-xs font-semibold text-violet-300 sm:px-6">
-        🗓️ Los datos se conservan durante dos meses. El día 15 de cada mes se elimina el mes más antiguo.
+        🗓️ Se conservan dos años de datos. El 1 de enero se elimina el año más antiguo.
       </footer>
     </>
   );
@@ -75,7 +77,13 @@ async function Dashboard({ searchParams }: { searchParams: PageProps<"/">["searc
   if (!couple.configured) return <Onboarding couple={couple} />;
 
   const month = typeof mes === "string" && retention.months.includes(mes) ? mes : retention.currentMonth;
-  const expenses = await listExpenses(month);
+  const [expenses, monthsWithData] = await Promise.all([listExpenses(month), listMonthsWithData()]);
+  // En diciembre, aviso en la portada del Wrapped que se acaba de crear.
+  const wrappedYear = availableWrappedYear(retention.today);
+  const wrappedReady =
+    wrappedYear !== null &&
+    retention.today < `${wrappedYear + 1}-01-01` &&
+    (await ensureWrapped(wrappedYear, retention.today)) !== null;
   const summary = summarize(expenses);
   const names = couple.names;
   const defaultDate = month === retention.currentMonth ? retention.today : lastDayOfMonth(month);
@@ -83,7 +91,15 @@ async function Dashboard({ searchParams }: { searchParams: PageProps<"/">["searc
 
   return (
     <div className="space-y-6">
-      <MonthBar retention={retention} month={month} hasExpenses={expenses.length > 0} names={names} defaultDate={defaultDate} />
+      {wrappedReady && wrappedYear !== null && <WrappedBanner year={wrappedYear} />}
+      <MonthBar
+        retention={retention}
+        month={month}
+        monthsWithData={monthsWithData}
+        hasExpenses={expenses.length > 0}
+        names={names}
+        defaultDate={defaultDate}
+      />
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <Stat label="Total del mes" emoji="💸" value={summary.overall.total} count={summary.overall.count} highlight />
@@ -162,38 +178,28 @@ function Onboarding({ couple }: { couple: Couple }) {
 function MonthBar({
   retention,
   month,
+  monthsWithData,
   hasExpenses,
   names,
   defaultDate,
 }: {
   retention: Retention;
   month: string;
+  monthsWithData: string[];
   hasExpenses: boolean;
   names: Names;
   defaultDate: string;
 }) {
   return (
-    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+    <div className="space-y-3">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <MonthPicker basePath="/" month={month} retention={retention} monthsWithData={monthsWithData} />
+        <p className="flex w-fit items-center gap-2 rounded-full bg-amber-100 px-3 py-1.5 text-xs font-bold text-amber-800">
+          <span aria-hidden="true">⏳</span>
+          {retention.yearToPurge} se eliminará el {formatDate(retention.nextPurgeDate, "long")}.
+        </p>
+      </div>
       <div className="flex flex-wrap items-center gap-3">
-        <nav aria-label="Mes" className="inline-flex w-fit gap-1 rounded-full border-2 border-white bg-white/80 p-1 shadow-sm">
-          {retention.months.map((m) => {
-            const active = m === month;
-            return (
-              <Link
-                key={m}
-                href={m === retention.currentMonth ? "/" : `/?mes=${m}`}
-                aria-current={active ? "page" : undefined}
-                className={`rounded-full px-4 py-1.5 text-sm font-extrabold capitalize transition ${
-                  active
-                    ? "bg-linear-to-r from-violet-600 to-fuchsia-500 text-white shadow-md"
-                    : "text-violet-700 hover:bg-violet-100"
-                }`}
-              >
-                {formatShortMonth(m)}
-              </Link>
-            );
-          })}
-        </nav>
         <TicketScanner names={names} today={defaultDate} minDate={retention.cutoffDate} maxDate={retention.maxDate} />
         <a
           href={`/api/export?mes=${month}`}
@@ -205,10 +211,6 @@ function MonthBar({
         </a>
         <ImportButton />
       </div>
-      <p className="flex w-fit items-center gap-2 rounded-full bg-amber-100 px-3 py-1.5 text-xs font-bold text-amber-800">
-        <span aria-hidden="true">⏳</span>
-        {formatMonth(retention.monthToPurge)} se eliminará el {formatDate(retention.nextPurgeDate, "long")}.
-      </p>
     </div>
   );
 }
