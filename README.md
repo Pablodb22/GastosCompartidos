@@ -33,6 +33,17 @@ Aplicación para que una pareja lleve sus gastos compartidos. Construida con Nex
 - **Editar gastos ya guardados** ✏️: apartado, fecha, concepto, importe, quién pagó, para quién (ocio) y los
   productos del ticket. Se aplican las mismas reglas que al crear el gasto; si estaba pagado sigue pagado, y un
   alquiler conserva el % de sueldos con el que se registró.
+- **Navegar por dos años**: el selector de la parte superior tiene el año y los doce meses; los meses sin gastos se ven
+  apagados y los futuros no se pueden elegir. Sirve igual en Cuentas, Gráficos y la exportación a Excel.
+- **🎁 Wrapped** (pestaña «Wrapped»): cada **1 de diciembre** se prepara un resumen del año al estilo Spotify, con humor y
+  en formato **historias** (toque a la derecha: siguiente · a la izquierda: anterior · mantener pulsado: pausa; también
+  con flechas y espacio en el ordenador). Cuenta cuánto gastasteis, el mes y el día más caros, vuestro día de la semana,
+  el sitio favorito, el plan y el producto estrella, quién ha sacado más la tarjeta, la parte de cada uno, la mayor
+  racha sin gastar, las cuentas pendientes y vuestro «perfil financiero».
+  - El periodo es del 1 de enero al 30 de noviembre. Antes del 1 de diciembre hay una **vista previa** con los gastos de hoy.
+  - Se **guarda** (tabla `wrapped_anual`) y no cambia aunque luego se editen o borren gastos; se puede volver a verlo
+    cuando se quiera. Si se añaden gastos que faltaban, «Volver a generar» lo recalcula.
+  - El primer año solo cuenta los gastos que haya en la app: si empezasteis a apuntar en noviembre, será corto.
 - **Pendiente / pagado**: cada gasto que genera deuda aparece como «⏳ Pendiente». Cuando la otra persona devuelve su parte,
   se pulsa y pasa a «✅ Pagado» (se puede deshacer). Los gastos pagados **no se borran**: siguen en la lista y en los totales,
   pero dejan de contar en «¿Quién debe a quién?». También hay un botón para marcar todo el mes como pagado.
@@ -45,16 +56,16 @@ La aplicación no tiene inicio de sesión: cualquiera que conozca la URL puede v
 
 ## Conservación de datos
 
-Solo se conservan el mes en curso y el anterior. **El día 15 de cada mes se elimina el mes más antiguo.**
+Se conservan **dos años naturales**: el actual y el anterior. **El 1 de enero se elimina el año más antiguo.**
 
-| Fecha | Meses disponibles |
+| Fecha | Años disponibles |
 | --- | --- |
-| 1–14 de diciembre | octubre, noviembre, diciembre |
-| desde el 15 de diciembre | noviembre, diciembre |
+| durante 2026 | 2025 y 2026 |
+| a partir del 1 de enero de 2027 | 2026 y 2027 (se elimina 2025) |
 
 El borrado lo hace una tarea programada diaria de Vercel (`vercel.json`, a las 04:00 UTC) que llama a `/api/cron/purge`. Como respaldo, la limpieza también se aplica al abrir la aplicación. Las fechas se calculan en la zona horaria `Europe/Madrid`.
 
-Si necesitas conservar el histórico, exporta el Excel de cada mes antes del día 15.
+**Antes de borrar un año se guarda su Wrapped**, así que sigue pudiéndose ver aunque sus gastos ya no existan. Si necesitas conservar los gastos en sí, exporta el Excel de cada mes antes del 1 de enero.
 
 ## Variables de entorno
 

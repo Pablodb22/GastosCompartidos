@@ -37,6 +37,12 @@ const SCHEMA = [
      importe   NUMERIC(10, 2) NOT NULL CHECK (importe > 0)
    )`,
   `CREATE INDEX IF NOT EXISTS gasto_productos_gasto_idx ON gasto_productos (gasto_id)`,
+  // Wrapped anual: resumen ya calculado de cada año. Se conserva aunque se borren los gastos del año.
+  `CREATE TABLE IF NOT EXISTS wrapped_anual (
+     anio         SMALLINT PRIMARY KEY,
+     datos        JSONB NOT NULL,
+     generado_en  TIMESTAMPTZ NOT NULL DEFAULT now()
+   )`,
 ];
 
 /** Devuelve el cliente SQL y garantiza que las tablas existen (una vez por instancia). */

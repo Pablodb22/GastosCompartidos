@@ -75,3 +75,54 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .wiggle, .btn-primary, .btn-secondary { animation: none !important; transition: none !important; }
 }
+
+/* ---------- Wrapped (historias) ---------- */
+
+@keyframes story-in {
+  from { opacity: 0; transform: translateY(4cqw); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes story-pop {
+  0% { opacity: 0; transform: scale(0.3) rotate(-14deg); }
+  60% { opacity: 1; transform: scale(1.18) rotate(5deg); }
+  100% { opacity: 1; transform: none; }
+}
+@keyframes story-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes story-float {
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  50% { transform: translateY(-3.5cqw) rotate(8deg); }
+}
+@keyframes story-grow-y {
+  from { transform: scaleY(0); }
+  to { transform: scaleY(1); }
+}
+@keyframes story-grow-x {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+@keyframes story-progress {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+.story-fade { animation: story-fade 0.45s ease-out both; }
+.story-in { animation: story-in 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) both; animation-delay: calc(var(--i, 0) * 110ms + 120ms); }
+.story-pop { animation: story-pop 0.8s cubic-bezier(0.2, 0.9, 0.3, 1.2) both; animation-delay: 60ms; }
+.story-float { animation: story-float var(--d, 5s) ease-in-out infinite; animation-delay: var(--delay, 0s); }
+.story-grow-y { transform-origin: bottom; animation: story-grow-y 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) both; animation-delay: calc(var(--i, 0) * 60ms + 300ms); }
+.story-grow-x { transform-origin: left; animation: story-grow-x 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) both; animation-delay: calc(var(--i, 0) * 120ms + 300ms); }
+.story-progress-fill {
+  transform-origin: left;
+  animation-name: story-progress;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .story-fade, .story-in, .story-pop, .story-float, .story-grow-y, .story-grow-x { animation: none !important; }
+  /* Sin movimiento no hay avance automático: la barra queda llena y se pasa de diapositiva a mano. */
+  .story-progress-fill { animation: none !important; transform: scaleX(1); }
+}

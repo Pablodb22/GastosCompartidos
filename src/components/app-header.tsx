@@ -4,6 +4,7 @@ import { Logo } from "@/components/logo";
 const TABS = [
   { href: "/", label: "Cuentas", emoji: "💸", key: "cuentas" },
   { href: "/graficos", label: "Gráficos", emoji: "📊", key: "graficos" },
+  { href: "/wrapped", label: "Wrapped", emoji: "🎁", key: "wrapped" },
 ] as const;
 
 export function AppHeader({ active }: { active: (typeof TABS)[number]["key"] }) {

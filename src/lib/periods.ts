@@ -1,14 +1,14 @@
 /**
  * Reglas de periodos y conservación de datos.
  *
- * La aplicación solo conserva el mes en curso y el anterior. El día 15 de cada
- * mes se elimina el mes que queda fuera de esa ventana. Ejemplo:
- *   - 1–14 de diciembre: se conservan octubre, noviembre y diciembre.
- *   - A partir del 15 de diciembre: se elimina octubre; quedan noviembre y diciembre.
+ * La aplicación conserva dos años naturales: el actual y el anterior. El 1 de
+ * enero se elimina el año más antiguo. Ejemplo: durante 2026 se guardan 2025 y
+ * 2026; el 1 de enero de 2027 se elimina 2025 (y se guardan 2026 y 2027).
  */
 
 export const TIME_ZONE = "Europe/Madrid";
-export const PURGE_DAY = 15;
+/** Años naturales que se conservan (el actual y los anteriores hasta completar esta cifra). */
+export const YEARS_KEPT = 2;
 
 /** Mes en formato "YYYY-MM". */
 export type MonthKey = string;
@@ -17,16 +17,19 @@ export type Retention = {
   /** Fecha de hoy (zona horaria de la app) en formato "YYYY-MM-DD". */
   today: string;
   currentMonth: MonthKey;
-  /** Meses disponibles, del más antiguo al más reciente. */
+  currentYear: number;
+  /** Años conservados, del más antiguo al más reciente. */
+  years: number[];
+  /** Meses conservados, del más antiguo al más reciente (hasta 24). */
   months: MonthKey[];
   /** Primer día conservado. Todo lo anterior se elimina. */
   cutoffDate: string;
   /** Último día en el que se pueden registrar gastos (fin del mes en curso). */
   maxDate: string;
-  /** Próxima fecha de borrado automático. */
+  /** Próxima fecha de borrado automático: el 1 de enero. */
   nextPurgeDate: string;
-  /** Mes que se eliminará en la próxima fecha de borrado. */
-  monthToPurge: MonthKey;
+  /** Año que se eliminará en la próxima fecha de borrado. */
+  yearToPurge: number;
 };
 
 export function todayInAppZone(now: Date = new Date()): string {
@@ -55,23 +58,25 @@ export function lastDayOfMonth(month: MonthKey): string {
 export function getRetention(now: Date = new Date()): Retention {
   const today = todayInAppZone(now);
   const currentMonth = today.slice(0, 7);
-  const day = Number(today.slice(8, 10));
+  const currentYear = Number(today.slice(0, 4));
+  const firstYear = currentYear - (YEARS_KEPT - 1);
 
-  const monthsBack = day >= PURGE_DAY ? 1 : 2;
+  const years: number[] = [];
+  for (let y = firstYear; y <= currentYear; y++) years.push(y);
+
   const months: MonthKey[] = [];
-  for (let i = monthsBack; i >= 0; i--) months.push(shiftMonth(currentMonth, -i));
-
-  const oldest = months[0];
-  const nextPurgeMonth = day >= PURGE_DAY ? shiftMonth(currentMonth, 1) : currentMonth;
+  for (let m = `${firstYear}-01`; m <= currentMonth; m = shiftMonth(m, 1)) months.push(m);
 
   return {
     today,
     currentMonth,
+    currentYear,
+    years,
     months,
-    cutoffDate: `${oldest}-01`,
+    cutoffDate: `${firstYear}-01-01`,
     maxDate: lastDayOfMonth(currentMonth),
-    nextPurgeDate: `${nextPurgeMonth}-${String(PURGE_DAY).padStart(2, "0")}`,
-    monthToPurge: oldest,
+    nextPurgeDate: `${currentYear + 1}-01-01`,
+    yearToPurge: firstYear,
   };
 }
 
@@ -101,6 +106,15 @@ export function formatShortMonth(month: MonthKey): string {
   const label = new Intl.DateTimeFormat("es-ES", { month: "long", timeZone: "UTC" }).format(
     new Date(Date.UTC(y, m - 1, 1)),
   );
+  return label.charAt(0).toUpperCase() + label.slice(1);
+}
+
+/** Mes abreviado ("Ene", "Feb"…) para selectores compactos. */
+export function monthShortName(month: MonthKey): string {
+  const [y, m] = month.split("-").map(Number);
+  const label = new Intl.DateTimeFormat("es-ES", { month: "short", timeZone: "UTC" })
+    .format(new Date(Date.UTC(y, m - 1, 1)))
+    .replace(".", "");
   return label.charAt(0).toUpperCase() + label.slice(1);
 }
 

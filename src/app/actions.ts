@@ -5,6 +5,7 @@ import { parseAmount, type Expense } from "@/lib/calc";
 import { RENT, canBeIndividual, isSection, type PersonId } from "@/lib/config";
 import { parseWorkbook } from "@/lib/excel";
 import {
+  computeWrapped,
   getCouple,
   getExpense,
   insertExpense,
@@ -13,11 +14,13 @@ import {
   purgeExpired,
   removeExpense,
   saveCouple,
+  saveWrappedSnapshot,
   setSettled,
   settleMonth,
   updateExpense,
 } from "@/lib/expenses";
 import { getRetention, isValidMonthKey } from "@/lib/periods";
+import { isWrappedUnlocked } from "@/lib/wrapped";
 import { buildExpense, parseProducts } from "@/lib/rules";
 
 // ---------- Pareja ----------
@@ -240,6 +243,21 @@ export async function editExpense(_prev: EditExpenseState, formData: FormData): 
   if (!updated) return done({ error: "Este gasto ya no existe (puede que se haya borrado)." });
   refresh();
   return done({ ok: true });
+}
+
+// ---------- Wrapped ----------
+
+/**
+ * Vuelve a calcular el Wrapped de un año con los gastos actuales (por ejemplo, tras importar
+ * gastos que faltaban). Solo si el año ya está desbloqueado y sus gastos siguen guardados.
+ */
+export async function regenerateWrapped(formData: FormData): Promise<void> {
+  const year = Number(formData.get("anio"));
+  const retention = getRetention();
+  if (!Number.isInteger(year) || !retention.years.includes(year) || !isWrappedUnlocked(year, retention.today)) return;
+  const data = await computeWrapped(year, { preview: false, today: retention.today });
+  if (data) await saveWrappedSnapshot(year, data, true);
+  refresh();
 }
 
 // ---------- Pagado / pendiente ----------

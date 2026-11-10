@@ -1,12 +1,12 @@
 import { Suspense } from "react";
-import Link from "next/link";
 import type { Metadata } from "next";
 import { AppHeader } from "@/components/app-header";
 import { PieChart } from "@/components/charts";
 import { formatEUR } from "@/lib/calc";
 import type { PersonId } from "@/lib/config";
-import { getCouple, listExpensesBetween, purgeExpired } from "@/lib/expenses";
-import { formatMonth, formatShortMonth, getRetention } from "@/lib/periods";
+import { getCouple, listExpensesBetween, listMonthsWithData, purgeExpired } from "@/lib/expenses";
+import { MonthPicker } from "@/components/month-picker";
+import { formatMonth, getRetention, lastDayOfMonth } from "@/lib/periods";
 import { pieFor, type PieData } from "@/lib/stats";
 
 export const metadata: Metadata = { title: "Gráficos · Cuentas en pareja" };
@@ -31,25 +31,15 @@ async function Charts({ searchParams }: { searchParams: PageProps<"/graficos">["
   const retention = getRetention();
   const [couple] = await Promise.all([getCouple(), purgeExpired(retention)]);
   const month = typeof mes === "string" && retention.months.includes(mes) ? mes : retention.currentMonth;
-  const all = await listExpensesBetween(`${month}-01`, retention.maxDate);
+  const [all, monthsWithData] = await Promise.all([
+    listExpensesBetween(`${month}-01`, lastDayOfMonth(month)),
+    listMonthsWithData(),
+  ]);
   const monthName = formatMonth(month).split(" ")[0].toLowerCase();
 
   return (
     <div className="space-y-6">
-      <nav aria-label="Mes" className="inline-flex w-fit gap-1 rounded-full border-2 border-white bg-white/80 p-1 shadow-sm">
-        {retention.months.map((m) => (
-          <Link
-            key={m}
-            href={m === retention.currentMonth ? "/graficos" : `/graficos?mes=${m}`}
-            aria-current={m === month ? "page" : undefined}
-            className={`rounded-full px-4 py-1.5 text-sm font-extrabold capitalize transition ${
-              m === month ? "bg-linear-to-r from-violet-600 to-fuchsia-500 text-white shadow-md" : "text-violet-700 hover:bg-violet-100"
-            }`}
-          >
-            {formatShortMonth(m)}
-          </Link>
-        ))}
-      </nav>
+      <MonthPicker basePath="/graficos" month={month} retention={retention} monthsWithData={monthsWithData} />
 
       <div className="grid grid-cols-[minmax(0,1fr)] gap-6 md:grid-cols-2 lg:grid-cols-3">
         {([1, 2] as const).map((p) => (
