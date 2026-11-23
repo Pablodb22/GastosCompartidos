@@ -1,6 +1,7 @@
 "use server";
 
 import { refresh } from "next/cache";
+import { cookies } from "next/headers";
 import { parseAmount, type Expense } from "@/lib/calc";
 import { RENT, canBeIndividual, isSection, type PersonId } from "@/lib/config";
 import { parseWorkbook } from "@/lib/excel";
@@ -20,6 +21,7 @@ import {
   updateExpense,
 } from "@/lib/expenses";
 import { getRetention, isValidMonthKey } from "@/lib/periods";
+import { ME_COOKIE } from "@/lib/me";
 import { canBuildWrapped } from "@/lib/wrapped";
 import { buildExpense, parseProducts } from "@/lib/rules";
 
@@ -243,6 +245,20 @@ export async function editExpense(_prev: EditExpenseState, formData: FormData): 
   if (!updated) return done({ error: "Este gasto ya no existe (puede que se haya borrado)." });
   refresh();
   return done({ ok: true });
+}
+
+// ---------- Quién soy ----------
+
+/** Recuerda en este móvil quién eres (para «Tú», «Solo yo» y la deuda en primera persona). */
+export async function setMe(formData: FormData): Promise<void> {
+  const value = String(formData.get("yo") ?? "");
+  const jar = await cookies();
+  if (value === "1" || value === "2") {
+    jar.set(ME_COOKIE, value, { maxAge: 60 * 60 * 24 * 365, path: "/", sameSite: "lax", httpOnly: true });
+  } else {
+    jar.delete(ME_COOKIE);
+  }
+  refresh();
 }
 
 // ---------- Wrapped ----------

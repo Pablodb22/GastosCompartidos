@@ -3,7 +3,7 @@
 import { useFormStatus } from "react-dom";
 import { settleAll, toggleSettled } from "@/app/actions";
 
-function Chip({ saldado, title }: { saldado: boolean; title: string }) {
+function Chip({ saldado, title, label }: { saldado: boolean; title: string; label: string }) {
   const { pending } = useFormStatus();
   return (
     <button
@@ -11,13 +11,9 @@ function Chip({ saldado, title }: { saldado: boolean; title: string }) {
       disabled={pending}
       title={title}
       aria-label={title}
-      className={`inline-flex items-center gap-1 rounded-full border-2 px-2.5 py-1 text-xs font-extrabold whitespace-nowrap transition hover:-translate-y-0.5 disabled:opacity-60 ${
-        saldado
-          ? "border-emerald-200 bg-emerald-50 text-emerald-700 hover:border-emerald-300"
-          : "border-amber-300 bg-amber-100 text-amber-800 hover:border-amber-400"
-      }`}
+      className={`chip transition hover:brightness-95 disabled:opacity-60 ${saldado ? "chip-ok" : "chip-pend"}`}
     >
-      {pending ? "…" : saldado ? "✅ Pagado" : "⏳ Pendiente"}
+      {pending ? "…" : label}
     </button>
   );
 }
@@ -32,12 +28,14 @@ export function SettleButton({
   debtor,
   creditor,
   amount,
+  label,
 }: {
   id: number;
   saldado: boolean;
   debtor: string;
   creditor: string;
   amount: string;
+  label: string;
 }) {
   const title = saldado
     ? `${debtor} ya pagó ${amount} a ${creditor}. Pulsa para volver a dejarlo pendiente.`
@@ -46,7 +44,7 @@ export function SettleButton({
     <form action={toggleSettled}>
       <input type="hidden" name="id" value={id} />
       <input type="hidden" name="saldado" value={String(!saldado)} />
-      <Chip saldado={saldado} title={title} />
+      <Chip saldado={saldado} title={title} label={label} />
     </form>
   );
 }
@@ -54,8 +52,8 @@ export function SettleButton({
 function SettleAllSubmit() {
   const { pending } = useFormStatus();
   return (
-    <button type="submit" disabled={pending} className="btn-secondary w-full">
-      {pending ? "Guardando…" : "✅ Marcar todo como pagado"}
+    <button type="submit" disabled={pending} className="w-full rounded-[14px] bg-white/95 px-4 py-3 text-[15px] font-extrabold text-brand-deep transition hover:bg-white focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-white disabled:opacity-60">
+      {pending ? "Guardando…" : "Marcar todo como pagado"}
     </button>
   );
 }

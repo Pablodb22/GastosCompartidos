@@ -2,6 +2,22 @@
 
 Aplicación para que una pareja lleve sus gastos compartidos. Construida con Next.js 16, Postgres en Neon y desplegada en Vercel.
 
+## Diseño
+
+Tono «fintech cálido»: serio donde se manejan números y divertido donde toca.
+
+- **Pantalla Cuentas**: selector de mes (‹ Noviembre 2026 ›, con desplegable de año y mes), una única tarjeta con
+  degradado para la deuda («Lucía te debe 419,06 €»), el gasto del mes (con la variación respecto al mes anterior),
+  los **Movimientos** (filtro Todos / Pendientes / Pagados, menú ⋮ para editar o eliminar, productos desplegables) y
+  los Ajustes (nombres y sueldos, Excel, aviso de borrado).
+- **Un solo «Añadir gasto»**: botón flotante en el móvil (y botón en el escritorio) que abre una hoja con Compra / Ocio /
+  Fijo, importe grande, «Pagado por», «¿Para quién es?» (Los dos / Solo yo / Solo X) y el botón de **Ticket**.
+- **«¿Quién eres?»**: se elige una vez por móvil (cookie `yo`, no es una cuenta) y la app habla en primera persona
+  («Tú», «Solo yo», «Lucía te debe»).
+- **Barra inferior** en el móvil (Cuentas, Gráficos, Wrapped) y pestañas arriba en el escritorio.
+- Tipografía Plus Jakarta Sans, iconos de línea, colores fijos por tipo (azul fijos, verde compra, naranja ocio).
+  Fredoka, los degradados y los emojis se reservan para el **Wrapped**; el humor vive en los textos pequeños.
+
 ## Funcionalidad
 
 - **Datos de la pareja**: nombres y sueldo neto mensual de cada persona (se piden la primera vez y se pueden editar).
@@ -25,9 +41,9 @@ Aplicación para que una pareja lleve sus gastos compartidos. Construida con Nex
   También saca **los productos del ticket** (nombre y precio, con cantidades, productos a peso y **descuentos ya
   restados del producto**: «Descuento -0,50», «DTO 2ª unidad», «Promo -20%»…): puedes editarlos,
   eliminarlos o añadir los que falten, y te avisa si la suma no coincide con el total. Se guardan con el gasto
-  (tabla `gasto_productos`) y se ven desplegando «🧾 N productos» en la lista.
-- **📊 Gráficos** (pestaña arriba a la derecha): tres quesitos por mes, uno por persona (su parte de los gastos)
-  y otro de la pareja (solo gastos comunes). Cada uno muestra el total y se reparte en gastos fijos, comida y
+  (tabla `gasto_productos`) y se ven desplegando «N productos» en la lista.
+- **📊 Gráficos**: un quesito por mes que se elige arriba (Pablo · Lucía · En pareja): la parte de cada persona o
+  solo los gastos comunes. Cada uno muestra el total y se reparte en gastos fijos, comida y
   **ocio dividido por concepto** (cine, cena…; los más pequeños se agrupan en «Otro ocio»). Al tocar una porción
   se ve su importe, su % y cuántos gastos tiene.
 - **Editar gastos ya guardados** ✏️: apartado, fecha, concepto, importe, quién pagó, para quién (ocio) y los

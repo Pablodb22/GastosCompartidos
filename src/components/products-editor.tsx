@@ -36,18 +36,18 @@ export function ProductsEditor({
   const mismatch = items.length > 0 && total !== null && Math.abs(total - sum) >= 0.01;
 
   return (
-    <section aria-labelledby="ticket-productos" className="rounded-2xl bg-violet-50/60 p-3">
+    <section aria-labelledby="ticket-productos" className="rounded-xl bg-field p-3">
       <div className="mb-2 flex items-baseline justify-between gap-2">
         <h3 id="ticket-productos" className="label mb-0!">
-          🧾 Productos {items.length > 0 && `(${items.length})`}
+          Productos {items.length > 0 && `(${items.length})`}
         </h3>
-        <span className="text-xs font-bold text-slate-500">
-          Suma: <span className="text-slate-900 tabular-nums">{toInput(sum)} €</span>
+        <span className="text-xs font-bold text-mute">
+          Suma: <span className="text-ink tabular-nums">{toInput(sum)} €</span>
         </span>
       </div>
 
       {items.length === 0 ? (
-        <p className="py-2 text-center text-xs font-semibold text-slate-500">
+        <p className="py-2 text-center text-xs font-semibold text-mute">
           No se han reconocido productos. Puedes añadirlos a mano (es opcional).
         </p>
       ) : (
@@ -84,14 +84,14 @@ export function ProductsEditor({
                     onClick={() => remove(it.id)}
                     aria-label={`Eliminar ${it.name || `producto ${i + 1}`}`}
                     title="Eliminar producto"
-                    className="shrink-0 rounded-full p-2 text-slate-400 transition hover:bg-red-50 hover:text-red-500"
+                    className="shrink-0 rounded-full p-2 text-mute transition hover:bg-danger-soft hover:text-danger"
                   >
                     ✕
                   </button>
                 </div>
                 {showDiscount && (
-                  <p className="mt-0.5 mr-9 text-right text-[11px] font-bold text-emerald-700">
-                    🏷️ Descuento de {toInput(it.discount!)} € ya aplicado
+                  <p className="mt-0.5 mr-9 text-right text-[11px] font-bold text-ok-fg">
+                    Descuento de {toInput(it.discount!)} € ya aplicado
                   </p>
                 )}
               </li>
@@ -103,15 +103,15 @@ export function ProductsEditor({
       <button
         type="button"
         onClick={onAdd}
-        className="mt-2 w-full rounded-full border-2 border-dashed border-violet-200 py-1.5 text-sm font-bold text-violet-600 transition hover:border-violet-400 hover:bg-white"
+        className="mt-2 w-full rounded-xl border-2 border-dashed border-line py-1.5 text-sm font-bold text-brand transition hover:border-brand hover:bg-white"
       >
         ＋ Añadir producto
       </button>
 
       {mismatch && (
-        <div className="mt-2 flex flex-wrap items-center justify-between gap-2 rounded-xl bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800">
+        <div className="mt-2 flex flex-wrap items-center justify-between gap-2 rounded-xl bg-pend-bg px-3 py-2 text-xs font-semibold text-pend-fg">
           <span>
-            ⚠️ La suma de productos ({toInput(sum)} €) no coincide con el total ({toInput(total!)} €):{" "}
+            La suma de productos ({toInput(sum)} €) no coincide con el total ({toInput(total!)} €):{" "}
             <strong>
               {total! > sum ? `faltan ${toInput(total! - sum)} €` : `sobran ${toInput(sum - total!)} €`}
             </strong>
@@ -120,7 +120,7 @@ export function ProductsEditor({
           <button
             type="button"
             onClick={onUseSum}
-            className="rounded-full bg-white px-2.5 py-1 font-extrabold text-amber-800 shadow-sm hover:bg-amber-100"
+            className="rounded-lg bg-white px-2.5 py-1 font-extrabold text-pend-fg shadow-sm"
           >
             Usar la suma
           </button>

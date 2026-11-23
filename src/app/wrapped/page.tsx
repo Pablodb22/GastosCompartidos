@@ -3,6 +3,7 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { connection } from "next/server";
 import { AppHeader } from "@/components/app-header";
+import { HeaderActions } from "@/components/header-actions";
 import { RegenerateWrapped } from "@/components/regenerate-wrapped";
 import { formatEUR } from "@/lib/calc";
 import { ensureWrapped, purgeExpired } from "@/lib/expenses";
@@ -14,19 +15,26 @@ export const metadata: Metadata = { title: "Wrapped · Cuentas en pareja" };
 export default function WrappedPage() {
   return (
     <>
-      <AppHeader active="wrapped" />
-      <main className="mx-auto w-full max-w-3xl flex-1 px-4 py-6 sm:px-6 sm:py-8">
+      <AppHeader
+        active="wrapped"
+        actions={
+          <Suspense>
+            <HeaderActions />
+          </Suspense>
+        }
+      />
+      <main className="pb-nav mx-auto w-full max-w-3xl flex-1 px-4 pt-6 sm:px-6 sm:pt-8">
         <div className="mb-6 text-center">
           <p className="text-5xl" aria-hidden="true">
             🎁
           </p>
           <h2 className="font-display text-gradient mt-2 text-3xl font-semibold">Vuestro Wrapped</h2>
-          <p className="mx-auto mt-2 max-w-md text-sm font-semibold text-violet-900/60">
+          <p className="mx-auto mt-2 max-w-md text-sm font-semibold text-ink2">
             Cada 1 de diciembre os preparamos un resumen de vuestro año, con humor y en formato historias. Se queda
             disponible hasta el 31 de octubre y el 1 de noviembre se borra.
           </p>
         </div>
-        <Suspense fallback={<div className="h-56 animate-pulse rounded-3xl bg-violet-100/70" aria-busy="true" />}>
+        <Suspense fallback={<div className="h-56 animate-pulse rounded-[20px] bg-seg" aria-busy="true" />}>
           <Content />
         </Suspense>
       </main>
@@ -60,14 +68,11 @@ async function Content() {
     const days = daysUntil(retention.today, `${retention.currentYear}-12-01`);
     return (
       <section className="card p-6 text-center">
-        <p className="text-4xl" aria-hidden="true">
-          ⏳
-        </p>
-        <h3 className="font-display mt-1 text-2xl font-semibold text-violet-950">Todavía no está listo</h3>
-        <p className="mt-1 text-sm font-bold text-violet-600">
+                <h3 className="mt-1 text-2xl font-extrabold text-ink">Todavía no está listo</h3>
+        <p className="mt-1 text-sm font-bold text-brand">
           Se crea el 1 de diciembre · {days === 1 ? "falta 1 día" : `faltan ${days} días`}
         </p>
-        <p className="mt-3 text-xs font-semibold text-slate-500">
+        <p className="mt-3 text-xs font-semibold text-mute">
           Contará los gastos desde el 1 de diciembre de {retention.currentYear - 1} hasta el 30 de noviembre.
         </p>
       </section>
@@ -77,8 +82,8 @@ async function Content() {
   const data = await ensureWrapped(year, retention.today);
   if (!data) {
     return (
-      <p className="rounded-3xl bg-white/80 px-6 py-10 text-center text-sm font-semibold text-slate-500">
-        🌱 No hay gastos entre el {longDate(wrappedStart(year))} y el {longDate(wrappedEnd(year))}, así que no hay Wrapped
+      <p className="rounded-[20px] bg-white px-6 py-10 text-center text-sm font-semibold text-mute">
+        No hay gastos entre el {longDate(wrappedStart(year))} y el {longDate(wrappedEnd(year))}, así que no hay Wrapped
         este año.
       </p>
     );

@@ -29,7 +29,7 @@ export function WrappedBanner({ year }: { year: number }) {
   if (storedDismissed || dismissed) return null;
 
   return (
-    <div className="relative overflow-hidden rounded-3xl bg-linear-to-r from-violet-700 via-fuchsia-600 to-orange-500 p-4 pr-12 text-white shadow-lg sm:p-5 sm:pr-14">
+    <div className="relative overflow-hidden rounded-[20px] bg-linear-to-r from-violet-700 via-fuchsia-600 to-orange-500 p-4 pr-12 text-white shadow-lg sm:p-5 sm:pr-14">
       <span aria-hidden="true" className="absolute -top-2 right-10 text-6xl opacity-20">
         🎁
       </span>
@@ -39,7 +39,7 @@ export function WrappedBanner({ year }: { year: number }) {
         href={`/wrapped/ver?anio=${year}`}
         className="mt-3 inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-extrabold text-violet-800 shadow transition hover:-translate-y-0.5"
       >
-        ▶️ Verlo ahora
+        Verlo ahora
       </Link>
       <button
         type="button"
