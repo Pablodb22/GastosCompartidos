@@ -34,9 +34,9 @@ export const RENT: FixedType = "Alquiler";
 /** Gasto fijo que puede ser de una sola persona (cada uno su cuota) o de los dos. */
 export const GYM: FixedType = "Gimnasio";
 
-/** Gastos que pueden ser de una sola persona: el ocio y el gimnasio. El resto es siempre de los dos. */
+/** Gastos que pueden ser de una sola persona: la compra, el ocio y el gimnasio. El resto es siempre de los dos. */
 export const canBeIndividual = (seccion: Section, concepto: string) =>
-  seccion === "ocio" || (seccion === "fijos" && concepto === GYM);
+  seccion === "ocio" || seccion === "comida" || (seccion === "fijos" && concepto === GYM);
 
 export const isSection = (v: unknown): v is Section =>
   v === "fijos" || v === "comida" || v === "ocio";

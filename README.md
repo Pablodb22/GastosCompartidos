@@ -23,12 +23,12 @@ Tono «fintech cálido»: serio donde se manejan números y divertido donde toca
 - **Datos de la pareja**: nombres y sueldo neto mensual de cada persona (se piden la primera vez y se pueden editar).
 - **Tres apartados de gastos**, cada uno con su formulario y su lista:
   - **Gastos fijos**: alquiler, internet, agua, luz y gimnasio (el gimnasio puede ser de la pareja o de una sola persona).
-  - **Compras de comida**.
+  - **Compras de comida**: en pareja o individuales (de una sola persona).
   - **Ocio**: en pareja o individual (de una sola persona).
 - **Reparto**:
   - El **alquiler** se reparte en proporción a los sueldos. Ejemplo: 2.400 € y 1.600 € → 60 % / 40 %.
     El porcentaje se guarda en cada alquiler registrado, así que cambiar un sueldo no altera los meses anteriores.
-  - El **ocio individual** y el **gimnasio de una sola persona** corren enteros a cargo de quien los disfruta; si los
+  - La **compra individual**, el **ocio individual** y el **gimnasio de una sola persona** corren enteros a cargo de quien los disfruta; si los
     paga la otra persona, queda como deuda.
   - Todos los demás gastos se reparten **a partes iguales**.
 - **¿Quién debe a quién?**: saldo del mes, lo que ha pagado cada persona frente a lo que le corresponde y el desglose por apartado.

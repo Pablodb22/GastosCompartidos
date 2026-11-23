@@ -50,7 +50,7 @@ export function buildExpense(
   if (input.pagadoPor !== 1 && input.pagadoPor !== 2) return { error: "Indica quién ha pagado." };
 
   if (input.para !== "pareja" && !canBeIndividual(input.seccion, concepto)) {
-    return { error: "Solo el ocio y el gimnasio pueden ser de una sola persona." };
+    return { error: "Solo la compra, el ocio y el gimnasio pueden ser de una sola persona." };
   }
 
   let porcentaje1 = 50;
