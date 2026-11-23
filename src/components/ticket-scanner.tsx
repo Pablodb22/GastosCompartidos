@@ -1,8 +1,12 @@
 "use client";
 
 import { useActionState, useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import type { Worker } from "tesseract.js";
 import { createExpense, type ExpenseFormState } from "@/app/actions";
+import { OPEN_SCANNER_EVENT } from "@/components/add-expense";
+import { IconClose } from "@/components/icons";
+import { toast } from "@/components/toast";
 import type { PersonId } from "@/lib/config";
 import { ProductsEditor, sumItems, toInput, type ItemRow } from "@/components/products-editor";
 import { parseAmount } from "@/lib/calc";
@@ -11,6 +15,7 @@ import { PERFECT, parseReceipt, receiptScore, type ReceiptGuess } from "@/lib/re
 
 type Props = {
   names: Record<PersonId, string>;
+  me: PersonId | null;
   today: string;
   minDate: string;
   maxDate: string;
@@ -35,9 +40,8 @@ const STATUS: Record<string, string> = {
   "recognizing text": "Leyendo el ticket…",
 };
 
-export function TicketScanner({ names, today, minDate, maxDate }: Props) {
+export function TicketScanner({ names, me, today, minDate, maxDate }: Props) {
   const [step, setStep] = useState<Step>({ name: "closed" });
-  const [saved, setSaved] = useState<number | undefined>();
   const workerRef = useRef<Worker | null>(null);
   const previewRef = useRef<string | null>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
@@ -57,17 +61,17 @@ export function TicketScanner({ names, today, minDate, maxDate }: Props) {
     const result = await createExpense(prev, formData);
     if (result.ok) {
       close();
-      setSaved(result.submission);
+      toast("Gasto del ticket guardado ✨");
     }
     return result;
   }, {});
 
-  // El aviso de «guardado» desaparece solo.
+  // Se abre desde «Ticket» en la hoja de nuevo gasto.
   useEffect(() => {
-    if (!saved) return;
-    const t = setTimeout(() => setSaved(undefined), 4000);
-    return () => clearTimeout(t);
-  }, [saved]);
+    const onOpen = () => setStep({ name: "pick" });
+    window.addEventListener(OPEN_SCANNER_EVENT, onOpen);
+    return () => window.removeEventListener(OPEN_SCANNER_EVENT, onOpen);
+  }, []);
 
   // Escape cierra la ventana; el lector se libera al salir de la página.
   useEffect(() => {
@@ -141,22 +145,10 @@ export function TicketScanner({ names, today, minDate, maxDate }: Props) {
 
   return (
     <>
-      <button type="button" className="btn-primary whitespace-nowrap" onClick={() => setStep({ name: "pick" })}>
-        📸 Escanear ticket
-      </button>
-
-      {saved && (
-        <p
-          role="status"
-          className="fixed right-4 bottom-4 left-4 z-50 mx-auto max-w-sm rounded-full bg-emerald-500 px-5 py-3 text-center text-sm font-extrabold text-white shadow-lg sm:left-auto"
-        >
-          ✨ ¡Gasto del ticket guardado!
-        </p>
-      )}
-
-      {step.name !== "closed" && (
+      {step.name !== "closed" &&
+        createPortal(
         <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-violet-950/40 backdrop-blur-sm sm:items-center sm:p-4"
+          className="fixed inset-0 z-50 flex items-end justify-center bg-ink/50 sm:items-center sm:p-4"
           onClick={(e) => e.target === e.currentTarget && step.name !== "reading" && close()}
         >
           <div
@@ -168,40 +160,40 @@ export function TicketScanner({ names, today, minDate, maxDate }: Props) {
             className="max-h-[92dvh] w-full max-w-lg overflow-y-auto rounded-t-3xl bg-white p-5 shadow-2xl outline-none sm:rounded-3xl"
           >
             <div className="mb-4 flex items-center justify-between gap-3">
-              <h2 id="ticket-title" className="font-display text-gradient text-2xl font-semibold">
-                📸 Escanear ticket
+              <h2 id="ticket-title" className="text-xl font-extrabold tracking-tight">
+                Escanear ticket
               </h2>
               <button
                 type="button"
                 onClick={close}
-                className="rounded-full p-2 text-slate-400 transition hover:bg-violet-50 hover:text-violet-700"
+                className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#f3f0eb] text-ink2"
                 aria-label="Cerrar"
               >
-                ✕
+                <IconClose className="h-[18px] w-[18px]" />
               </button>
             </div>
 
             {step.name === "pick" && (
               <div className="space-y-3">
-                <p className="text-sm font-semibold text-slate-500">
+                <p className="text-sm font-semibold text-ink2">
                   Haz una foto al ticket bien estirado, con buena luz y que se vea el total. Lo leemos y solo tendrás que
                   revisarlo.
                 </p>
                 <label className="btn-primary w-full cursor-pointer py-4 text-base">
                   <input type="file" accept="image/*" capture="environment" className="sr-only" onChange={onFile} />
-                  📷 Hacer foto
+                  Hacer foto
                 </label>
                 <label className="btn-secondary w-full cursor-pointer py-3">
                   <input type="file" accept="image/*" className="sr-only" onChange={onFile} />
-                  🖼️ Elegir de la galería
+                  Elegir de la galería
                 </label>
                 {step.error && (
-                  <p role="alert" className="rounded-2xl bg-red-50 px-3 py-2 text-sm font-bold text-red-600">
-                    😬 {step.error}
+                  <p role="alert" className="rounded-xl bg-danger-soft px-3 py-2 text-sm font-bold text-danger">
+                    {step.error}
                   </p>
                 )}
-                <p className="text-xs font-semibold text-slate-400">
-                  🔒 La foto se lee en tu móvil y no se sube a ningún sitio. La primera vez se descarga el lector (unos 6 MB); después queda guardado.
+                <p className="text-xs font-semibold text-mute">
+                  La foto se lee en tu móvil y no se sube a ningún sitio. La primera vez se descarga el lector (unos 6 MB); después queda guardado.
                 </p>
               </div>
             )}
@@ -210,16 +202,16 @@ export function TicketScanner({ names, today, minDate, maxDate }: Props) {
               <div className="space-y-4 text-center" aria-live="polite">
                 {/* eslint-disable-next-line @next/next/no-img-element -- vista previa local (blob:) */}
                 <img src={step.preview} alt="Foto del ticket" className="mx-auto max-h-56 rounded-2xl object-contain shadow" />
-                <p className="font-bold text-violet-700">{step.label}</p>
+                <p className="font-bold text-brand">{step.label}</p>
                 <div
-                  className="h-3 overflow-hidden rounded-full bg-violet-100"
+                  className="h-3 overflow-hidden rounded-full bg-seg"
                   role="progressbar"
                   aria-valuemin={0}
                   aria-valuemax={100}
                   aria-valuenow={Math.round(step.progress * 100)}
                 >
                   <div
-                    className="h-full rounded-full bg-linear-to-r from-violet-600 to-fuchsia-500 transition-all"
+                    className="h-full rounded-full bg-brand transition-all"
                     style={{ width: `${Math.max(5, step.progress * 100)}%` }}
                   />
                 </div>
@@ -231,6 +223,7 @@ export function TicketScanner({ names, today, minDate, maxDate }: Props) {
                 key={step.preview}
                 step={step}
                 names={names}
+                me={me}
                 today={today}
                 minDate={minDate}
                 maxDate={maxDate}
@@ -244,7 +237,8 @@ export function TicketScanner({ names, today, minDate, maxDate }: Props) {
               />
             )}
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </>
   );
@@ -253,6 +247,7 @@ export function TicketScanner({ names, today, minDate, maxDate }: Props) {
 function ReviewForm({
   step,
   names,
+  me,
   today,
   minDate,
   maxDate,
@@ -263,6 +258,7 @@ function ReviewForm({
 }: {
   step: Extract<Step, { name: "review" }>;
   names: Record<PersonId, string>;
+  me: PersonId | null;
   today: string;
   minDate: string;
   maxDate: string;
@@ -307,7 +303,7 @@ function ReviewForm({
         <img src={step.preview} alt="Foto del ticket" className="h-24 w-16 shrink-0 rounded-xl object-cover shadow" />
         <div className="min-w-0 flex-1">
           <label id="ticket-total-titulo" htmlFor="ticket-importe" className="label">
-            💶 Importe total de la factura
+            Importe total de la factura
           </label>
           <input
             id="ticket-importe"
@@ -318,9 +314,9 @@ function ReviewForm({
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
             placeholder="0,00"
-            className="input font-display text-right text-3xl! tabular-nums"
+            className="input text-right text-3xl! font-extrabold tabular-nums"
           />
-          <p className="mt-1 text-[11px] font-semibold text-slate-400">
+          <p className="mt-1 text-[11px] font-semibold text-mute">
             {guess.total !== null ? "Leído del ticket. Si no es correcto, cámbialo." : "No hemos encontrado el total: escríbelo."}
           </p>
           {guess.candidates.length > 1 && (
@@ -332,8 +328,8 @@ function ReviewForm({
                   onClick={() => setAmount(toInput(c))}
                   className={`rounded-full border-2 px-2 py-0.5 text-[11px] font-bold tabular-nums transition ${
                     amount === toInput(c)
-                      ? "border-violet-500 bg-violet-500 text-white"
-                      : "border-violet-100 bg-white text-violet-700 hover:border-violet-300"
+                      ? "border-brand bg-brand text-white"
+                      : "border-line bg-white text-brand hover:border-brand"
                   }`}
                 >
                   {toInput(c)} €
@@ -355,33 +351,21 @@ function ReviewForm({
       />
 
       {/* 3. Datos del gasto */}
-      <section aria-labelledby="ticket-datos" className="space-y-4 border-t-2 border-violet-50 pt-4">
-        <h3 id="ticket-datos" className="font-display text-lg font-semibold text-violet-950">
-          📝 Datos del gasto
+      <section aria-labelledby="ticket-datos" className="space-y-4 border-t border-line pt-4">
+        <h3 id="ticket-datos" className="text-base font-extrabold">
+          Datos del gasto
         </h3>
 
         <fieldset>
           <legend className="label">¿Es ocio o compra?</legend>
-          <div className="grid grid-cols-2 gap-2">
+          <div className="seg" role="group" aria-label="Tipo de gasto">
             {(
               [
-                ["comida", "🛒 Compra"],
-                ["ocio", "🎉 Ocio"],
+                ["comida", "Compra"],
+                ["ocio", "Ocio"],
               ] as const
             ).map(([value, label]) => (
-              <button
-                key={value}
-                type="button"
-                aria-pressed={section === value}
-                onClick={() => setSection(value)}
-                className={`rounded-2xl border-2 px-3 py-2.5 text-base font-extrabold transition ${
-                  section === value
-                    ? value === "comida"
-                      ? "border-emerald-500 bg-emerald-500 text-white shadow-md"
-                      : "border-pink-500 bg-pink-500 text-white shadow-md"
-                    : "border-violet-100 bg-white text-slate-600 hover:border-violet-300"
-                }`}
-              >
+              <button key={value} type="button" aria-pressed={section === value} onClick={() => setSection(value)} className="seg-item">
                 {label}
               </button>
             ))}
@@ -391,15 +375,11 @@ function ReviewForm({
         {section === "ocio" ? (
           <fieldset>
             <legend className="label">¿Para quién es?</legend>
-            <div className="grid grid-cols-3 gap-2">
+            <div className="seg">
               {(["pareja", "1", "2"] as const).map((o) => (
-                <label
-                  key={o}
-                  className="flex cursor-pointer items-center justify-center gap-1.5 rounded-full border-2 border-amber-200 bg-white px-2 py-2 text-sm font-bold text-slate-600 transition hover:border-amber-300 has-checked:border-amber-400 has-checked:bg-amber-400 has-checked:text-white has-checked:shadow-md has-focus-visible:ring-4 has-focus-visible:ring-amber-100"
-                >
+                <label key={o} className="seg-item">
                   <input type="radio" name="para" value={o} defaultChecked={o === "pareja"} className="sr-only" />
-                  <span aria-hidden="true">{o === "pareja" ? "💑" : "🙋"}</span>
-                  <span className="truncate">{o === "pareja" ? "Pareja" : names[Number(o) as PersonId]}</span>
+                  <span className="truncate">{o === "pareja" ? "Los dos" : Number(o) === me ? "Solo yo" : `Solo ${names[Number(o) as PersonId]}`}</span>
                 </label>
               ))}
             </div>
@@ -408,23 +388,18 @@ function ReviewForm({
           <>
             <input type="hidden" name="para" value="pareja" />
             {section === "comida" && (
-              <p className="-mt-1 text-xs font-semibold text-slate-500">💑 La compra es para los dos: se reparte a medias.</p>
+              <p className="-mt-1 text-xs font-medium text-mute">La compra es para los dos: se reparte a medias.</p>
             )}
           </>
         )}
 
         <fieldset>
-          <legend className="label">¿Quién lo pagó?</legend>
-          <div className="grid grid-cols-2 gap-2">
+          <legend className="label">Pagado por</legend>
+          <div className="seg">
             {([1, 2] as const).map((p) => (
-              <label
-                key={p}
-                className={`flex cursor-pointer items-center justify-center rounded-full border-2 border-violet-100 bg-white px-3 py-2 text-sm font-bold text-slate-600 transition hover:border-violet-200 has-checked:text-white has-checked:shadow-md has-focus-visible:ring-4 has-focus-visible:ring-brand-100 ${
-                  p === 1 ? "has-checked:border-violet-500 has-checked:bg-violet-500" : "has-checked:border-pink-500 has-checked:bg-pink-500"
-                }`}
-              >
-                <input type="radio" name="pagadoPor" value={p} defaultChecked={p === 1} className="sr-only" />
-                <span className="truncate">{names[p]}</span>
+              <label key={p} className="seg-item">
+                <input type="radio" name="pagadoPor" value={p} defaultChecked={p === (me ?? 1)} className="sr-only" />
+                <span className="truncate">{p === me ? "Tú" : names[p]}</span>
               </label>
             ))}
           </div>
@@ -461,27 +436,27 @@ function ReviewForm({
             />
           </div>
         </div>
-        {step.dateNote && <p className="-mt-2 text-xs font-semibold text-amber-700">⚠️ {step.dateNote}</p>}
+        {step.dateNote && <p className="-mt-2 text-xs font-semibold text-pend-fg">{step.dateNote}</p>}
       </section>
 
       {error && (
-        <p role="alert" className="rounded-2xl bg-red-50 px-3 py-2 text-sm font-bold text-red-600">
-          😬 {error}
+        <p role="alert" className="rounded-xl bg-danger-soft px-3 py-2 text-sm font-bold text-danger">
+          {error}
         </p>
       )}
 
       <div className="flex flex-col-reverse gap-2 sm:flex-row">
         <button type="button" onClick={onRetake} className="btn-secondary sm:flex-1">
-          🔄 Repetir foto
+          Repetir foto
         </button>
         <button type="submit" disabled={pending || !section} className="btn-primary sm:flex-1">
-          {pending ? "Guardando…" : section ? "✅ Guardar gasto" : "Elige ocio o compra"}
+          {pending ? "Guardando…" : section ? "Guardar gasto" : "Elige ocio o compra"}
         </button>
       </div>
 
       <details className="text-xs">
-        <summary className="cursor-pointer font-bold text-violet-400">Ver el texto leído</summary>
-        <pre className="mt-2 max-h-48 overflow-auto rounded-2xl bg-slate-50 p-3 font-mono whitespace-pre-wrap text-slate-600">
+        <summary className="cursor-pointer font-bold text-mute">Ver el texto leído</summary>
+        <pre className="mt-2 max-h-48 overflow-auto rounded-xl bg-field p-3 font-mono whitespace-pre-wrap text-ink2">
           {step.text.trim() || "(no se ha leído texto)"}
         </pre>
       </details>

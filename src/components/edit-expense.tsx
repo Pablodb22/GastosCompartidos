@@ -1,8 +1,9 @@
 "use client";
 
-import { useActionState, useCallback, useEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { editExpense, type EditExpenseState } from "@/app/actions";
+import { IconClose, KIND } from "@/components/icons";
+import { toast } from "@/components/toast";
 import { ProductsEditor, sumItems, toInput, type ItemRow } from "@/components/products-editor";
 import { beneficiaryOf, formatPct, parseAmount, type Expense } from "@/lib/calc";
 import { FIXED_TYPES, RENT, SECTIONS, canBeIndividual, type PersonId, type Section } from "@/lib/config";
@@ -14,73 +15,7 @@ type Props = {
   maxDate: string;
 };
 
-const SECTION_EMOJI: Record<Section, string> = {
-  fijos: "🏠",
-  comida: "🛒",
-  ocio: "🎉",
-};
-
-/** Botón ✏️ de cada gasto: abre una ventana con todos sus datos para corregirlos. */
-export function EditExpenseButton({ expense, names, minDate, maxDate }: Props) {
-  const [open, setOpen] = useState(false);
-  const [saved, setSaved] = useState(false);
-  const close = useCallback(() => setOpen(false), []);
-
-  useEffect(() => {
-    if (!saved) return;
-    const t = setTimeout(() => setSaved(false), 3500);
-    return () => clearTimeout(t);
-  }, [saved]);
-
-  return (
-    <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        aria-label={`Editar ${expense.concepto}`}
-        title="Editar"
-        className="rounded-full p-2 text-slate-300 transition hover:-rotate-12 hover:bg-violet-50 hover:text-violet-600"
-      >
-        <svg viewBox="0 0 20 20" fill="currentColor" className="h-4 w-4" aria-hidden="true">
-          <path d="M13.586 3.586a2 2 0 1 1 2.828 2.828l-.793.793-2.828-2.828.793-.793ZM11.379 5.793 3 14.172V17h2.828l8.38-8.379-2.83-2.828Z" />
-        </svg>
-      </button>
-
-      {/*
-        La ventana y el aviso se pintan en <body>: dentro de la tarjeta, su desenfoque
-        (backdrop-filter) los encerraría y otras tarjetas los taparían.
-      */}
-      {saved &&
-        createPortal(
-          <p
-            role="status"
-            className="fixed right-4 bottom-4 left-4 z-50 mx-auto max-w-sm rounded-full bg-emerald-500 px-5 py-3 text-center text-sm font-extrabold text-white shadow-lg sm:left-auto"
-          >
-            ✨ ¡Cambios guardados!
-          </p>,
-          document.body,
-        )}
-
-      {open &&
-        createPortal(
-          <EditDialog
-            expense={expense}
-            names={names}
-            minDate={minDate}
-            maxDate={maxDate}
-            onClose={close}
-            onSaved={() => {
-              setOpen(false);
-              setSaved(true);
-            }}
-          />,
-          document.body,
-        )}
-    </>
-  );
-}
-
-function EditDialog({
+export function EditDialog({
   expense: e,
   names,
   minDate,
@@ -90,7 +25,10 @@ function EditDialog({
 }: Props & { onClose: () => void; onSaved: () => void }) {
   const [state, action, pending] = useActionState<EditExpenseState, FormData>(async (prev, formData) => {
     const result = await editExpense(prev, formData);
-    if (result.ok) onSaved();
+    if (result.ok) {
+      toast("Cambios guardados");
+      onSaved();
+    }
     return result;
   }, {});
 
@@ -134,7 +72,7 @@ function EditDialog({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-violet-950/40 backdrop-blur-sm sm:items-center sm:p-4"
+      className="fixed inset-0 z-50 flex items-end justify-center bg-ink/50 sm:items-center sm:p-4"
       onClick={(ev) => ev.target === ev.currentTarget && onClose()}
     >
       <div
@@ -146,16 +84,16 @@ function EditDialog({
         className="max-h-[92dvh] w-full max-w-lg overflow-y-auto rounded-t-3xl bg-white p-5 text-left shadow-2xl outline-none sm:rounded-3xl"
       >
         <div className="mb-4 flex items-center justify-between gap-3">
-          <h2 id={`editar-${e.id}`} className="font-display text-gradient text-2xl font-semibold">
-            ✏️ Editar gasto
+          <h2 id={`editar-${e.id}`} className="text-xl font-extrabold tracking-tight">
+            Editar gasto
           </h2>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-full p-2 text-slate-400 transition hover:bg-violet-50 hover:text-violet-700"
+            className="flex h-9 w-9 items-center justify-center rounded-xl bg-[#f3f0eb] text-ink2"
             aria-label="Cerrar"
           >
-            ✕
+            <IconClose className="h-[18px] w-[18px]" />
           </button>
         </div>
 
@@ -164,26 +102,13 @@ function EditDialog({
           <input type="hidden" name="seccion" value={section} />
           <input type="hidden" name="productos" value={productsJson} />
 
-          <fieldset>
-            <legend className="label">Apartado</legend>
-            <div className="grid grid-cols-3 gap-2">
-              {SECTIONS.map((s) => (
-                <button
-                  key={s.id}
-                  type="button"
-                  aria-pressed={section === s.id}
-                  onClick={() => changeSection(s.id)}
-                  className={`rounded-2xl border-2 px-2 py-2 text-sm font-extrabold transition ${
-                    section === s.id
-                      ? "border-violet-500 bg-violet-500 text-white shadow-md"
-                      : "border-violet-100 bg-white text-slate-600 hover:border-violet-300"
-                  }`}
-                >
-                  {SECTION_EMOJI[s.id]} {s.id === "fijos" ? "Fijos" : s.id === "comida" ? "Compra" : "Ocio"}
-                </button>
-              ))}
-            </div>
-          </fieldset>
+          <div className="seg" role="group" aria-label="Tipo de gasto">
+            {SECTIONS.map((sec) => (
+              <button key={sec.id} type="button" aria-pressed={section === sec.id} onClick={() => changeSection(sec.id)} className="seg-item">
+                {KIND[sec.id].label}
+              </button>
+            ))}
+          </div>
 
           <div className="grid grid-cols-[minmax(0,1fr)_120px] gap-3">
             <div>
@@ -248,24 +173,11 @@ function EditDialog({
           </div>
 
           <fieldset>
-            <legend className="label">¿Quién lo pagó?</legend>
-            <div className="grid grid-cols-2 gap-2">
+            <legend className="label">Pagado por</legend>
+            <div className="seg">
               {([1, 2] as const).map((p) => (
-                <label
-                  key={p}
-                  className={`flex cursor-pointer items-center justify-center rounded-full border-2 border-violet-100 bg-white px-3 py-2 text-sm font-bold text-slate-600 transition hover:border-violet-200 has-checked:text-white has-checked:shadow-md has-focus-visible:ring-4 has-focus-visible:ring-brand-100 ${
-                    p === 1
-                      ? "has-checked:border-violet-500 has-checked:bg-violet-500"
-                      : "has-checked:border-pink-500 has-checked:bg-pink-500"
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name="pagadoPor"
-                    value={p}
-                    defaultChecked={e.pagadoPor === p}
-                    className="sr-only"
-                  />
+                <label key={p} className="seg-item">
+                  <input type="radio" name="pagadoPor" value={p} defaultChecked={e.pagadoPor === p} className="sr-only" />
                   <span className="truncate">{names[p]}</span>
                 </label>
               ))}
@@ -275,15 +187,11 @@ function EditDialog({
           {canBeIndividual(section, concepto) ? (
             <fieldset>
               <legend className="label">¿Para quién es?</legend>
-              <div className="grid grid-cols-3 gap-2">
+              <div className="seg">
                 {(["pareja", "1", "2"] as const).map((o) => (
-                  <label
-                    key={o}
-                    className="flex cursor-pointer items-center justify-center gap-1.5 rounded-full border-2 border-amber-200 bg-white px-2 py-2 text-sm font-bold text-slate-600 transition hover:border-amber-300 has-checked:border-amber-400 has-checked:bg-amber-400 has-checked:text-white has-checked:shadow-md has-focus-visible:ring-4 has-focus-visible:ring-amber-100"
-                  >
+                  <label key={o} className="seg-item">
                     <input type="radio" name="para" value={o} defaultChecked={String(who) === o} className="sr-only" />
-                    <span aria-hidden="true">{o === "pareja" ? "💑" : "🙋"}</span>
-                    <span className="truncate">{o === "pareja" ? "Pareja" : names[Number(o) as PersonId]}</span>
+                    <span className="truncate">{o === "pareja" ? "Los dos" : `Solo ${names[Number(o) as PersonId]}`}</span>
                   </label>
                 ))}
               </div>
@@ -293,8 +201,7 @@ function EditDialog({
           )}
 
           {section === "fijos" && concepto === RENT && (
-            <p className="text-xs font-semibold text-slate-500">
-              💡{" "}
+            <p className="text-xs font-medium text-mute">
               {isRent
                 ? `Se mantiene el reparto con el que se registró (${names[1]} ${formatPct(e.porcentaje1)} · ${names[2]} ${formatPct(100 - e.porcentaje1)}).`
                 : "El alquiler se repartirá según los sueldos actuales."}
@@ -315,21 +222,21 @@ function EditDialog({
             <button
               type="button"
               onClick={() => setShowProducts(true)}
-              className="text-sm font-bold text-violet-600 transition hover:text-violet-800"
+              className="text-sm font-bold text-brand transition hover:text-brand-hover"
             >
-              🧾 ＋ Añadir productos (opcional)
+              + Añadir productos (opcional)
             </button>
           )}
 
           {e.saldado && (
-            <p className="rounded-2xl bg-emerald-50 px-3 py-2 text-xs font-semibold text-emerald-800">
-              ✅ Este gasto está marcado como pagado y seguirá así. Puedes cambiarlo desde la lista.
+            <p className="rounded-xl bg-ok-bg px-3 py-2 text-xs font-semibold text-ok-fg">
+              Este gasto está marcado como pagado y seguirá así. Puedes cambiarlo desde la lista.
             </p>
           )}
 
           {state.error && (
-            <p role="alert" className="rounded-2xl bg-red-50 px-3 py-2 text-sm font-bold text-red-600">
-              😬 {state.error}
+            <p role="alert" className="rounded-xl bg-danger-soft px-3 py-2 text-sm font-bold text-danger">
+              {state.error}
             </p>
           )}
 
@@ -338,7 +245,7 @@ function EditDialog({
               Cancelar
             </button>
             <button type="submit" disabled={pending} className="btn-primary sm:flex-1">
-              {pending ? "Guardando…" : "💾 Guardar cambios"}
+              {pending ? "Guardando…" : "Guardar cambios"}
             </button>
           </div>
         </form>

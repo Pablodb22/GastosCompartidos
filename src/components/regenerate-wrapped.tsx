@@ -11,7 +11,7 @@ function Submit() {
       disabled={pending}
       className="rounded-full px-3 py-1.5 text-xs font-bold text-white/80 underline-offset-2 transition hover:bg-white/15 hover:text-white disabled:opacity-60"
     >
-      {pending ? "Calculando…" : "🔄 Volver a generar"}
+      {pending ? "Calculando…" : "Volver a generar"}
     </button>
   );
 }

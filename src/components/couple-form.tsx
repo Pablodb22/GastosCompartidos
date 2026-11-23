@@ -51,21 +51,21 @@ export function CoupleForm({ names, salaries, configured }: Props) {
           </div>
         </div>
       ))}
-      <p className="text-xs font-semibold text-slate-500">
-        🔒 Sueldo neto mensual. Solo se usa para repartir el alquiler y no se borra con la limpieza mensual.
+      <p className="text-xs font-medium text-mute">
+        Sueldo neto mensual. Solo se usa para repartir el alquiler y no se borra con la limpieza mensual.
       </p>
       {state.error && (
-        <p role="alert" className="rounded-2xl bg-red-50 px-3 py-2 text-sm font-bold text-red-600">
-          😬 {state.error}
+        <p role="alert" className="rounded-xl bg-danger-soft px-3 py-2 text-sm font-bold text-danger">
+          {state.error}
         </p>
       )}
       {state.ok && (
-        <p role="status" className="rounded-2xl bg-emerald-50 px-3 py-2 text-sm font-bold text-emerald-700">
-          ✨ ¡Datos guardados!
+        <p role="status" className="rounded-xl bg-ok-bg px-3 py-2 text-sm font-bold text-ok-fg">
+          Datos guardados
         </p>
       )}
       <button type="submit" disabled={pending} className="btn-primary w-full">
-        {pending ? "Guardando…" : configured ? "Guardar cambios" : "¡Empezar! 🚀"}
+        {pending ? "Guardando…" : configured ? "Guardar cambios" : "Empezar"}
       </button>
     </form>
   );

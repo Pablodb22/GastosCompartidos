@@ -15,12 +15,13 @@ import type { PieSlice } from "@/lib/stats";
 
 const COLORS = {
   fijos: "#2a78d6",
-  comida: "#1baf7a",
-  ocio: ["#e87ba4", "#eda100", "#e34948", "#008300"],
-  otros: "#9a9890",
+  comida: "#17996a",
+  // El ocio es una familia naranja, de más a menos intensa: se distingue del resto y entre sí.
+  ocio: ["#e8622e", "#f29a6b", "#f8c9ae", "#fbe0cf"],
+  otros: "#e4d5ca",
 };
-// Etiqueta dentro de la porción: blanca, salvo en el amarillo (casi negra).
-const inkOn = (color: string) => (color === "#eda100" ? "#0b0b0b" : "#ffffff");
+// Etiqueta dentro de la porción: blanca sobre los tonos intensos, tinta sobre los claros.
+const inkOn = (color: string) => (["#f29a6b", "#f8c9ae", "#fbe0cf", "#e4d5ca"].includes(color) ? "#1c1a2e" : "#ffffff");
 
 const eur = new Intl.NumberFormat("es-ES", { style: "currency", currency: "EUR" });
 const pctFmt = new Intl.NumberFormat("es-ES", { maximumFractionDigits: 0 });
@@ -78,7 +79,7 @@ export function PieChart({
 }) {
   const [active, setActive] = useState<string | null>(null);
   if (total <= 0 || slices.length === 0) {
-    return <p className="rounded-2xl bg-slate-50 px-4 py-10 text-center text-sm font-semibold text-slate-400">🌱 Sin gastos este mes.</p>;
+    return <p className="rounded-xl bg-field px-4 py-10 text-center text-sm font-semibold text-mute">Sin gastos este mes. Gráfico en blanco, conciencia tranquila.</p>;
   }
 
   const data = colorize(slices, total);
@@ -92,7 +93,7 @@ export function PieChart({
     <div>
       <svg
         viewBox={`0 0 ${S} ${S}`}
-        className="mx-auto block w-full max-w-60"
+        className="mx-auto block w-full max-w-52"
         role="img"
         aria-label={`${title}. ${data.map(describe).join(". ")}`}
       >
@@ -139,42 +140,33 @@ export function PieChart({
         {ocio.length > 0 && !(single && ocio.length === 1) && (
           <g aria-hidden="true">
             {ocio.length === data.length ? (
-              <circle cx={C} cy={C} r={R + 9} fill="none" stroke="#898781" strokeWidth={3} />
+              <circle cx={C} cy={C} r={R + 9} fill="none" stroke="#c9c4bc" strokeWidth={3} />
             ) : (
               <path
                 d={arcPath(ocio[0].start + 0.03, ocio[ocio.length - 1].end - 0.03, R + 9)}
                 fill="none"
-                stroke="#898781"
+                stroke="#c9c4bc"
                 strokeWidth={3}
                 strokeLinecap="round"
               />
             )}
-            <text
-              x={polar(R + 22, (ocio[0].start + ocio[ocio.length - 1].end) / 2)[0]}
-              y={polar(R + 22, (ocio[0].start + ocio[ocio.length - 1].end) / 2)[1]}
-              textAnchor="middle"
-              dominantBaseline="central"
-              className="text-[15px]"
-            >
-              🎉
-            </text>
           </g>
         )}
       </svg>
 
       {/* Detalle de la porción tocada. */}
-      <p className="mt-1 flex min-h-10 items-center justify-center gap-2 rounded-2xl bg-slate-50 px-3 py-2 text-center text-xs" aria-live="polite">
+      <p className="mt-1 flex min-h-10 items-center justify-center gap-2 rounded-xl bg-field px-3 py-2 text-center text-xs" aria-live="polite">
         {current ? (
           <>
             <span aria-hidden="true" className="h-2.5 w-2.5 shrink-0 rounded-[3px]" style={{ background: current.color }} />
-            <span className="font-bold text-slate-700">{current.label}</span>
-            <span className="font-extrabold text-slate-900 tabular-nums">{eur.format(current.value)}</span>
-            <span className="font-semibold text-slate-500">
+            <span className="font-bold text-ink">{current.label}</span>
+            <span className="font-extrabold text-ink tabular-nums">{eur.format(current.value)}</span>
+            <span className="font-semibold text-mute">
               {pctFmt.format(current.pct)} % · {current.count} {current.count === 1 ? "gasto" : "gastos"}
             </span>
           </>
         ) : (
-          <span className="font-semibold text-slate-400">Toca una porción para ver el detalle</span>
+          <span className="font-semibold text-mute">Toca una porción para ver el detalle</span>
         )}
       </p>
 
@@ -183,18 +175,18 @@ export function PieChart({
         {data
           .filter((d) => d.group !== "ocio")
           .map((d) => (
-            <LegendRow key={d.key} d={d} active={active} setActive={setActive} emoji={d.group === "fijos" ? "🏠" : "🛒"} />
+            <LegendRow key={d.key} d={d} active={active} setActive={setActive} />
           ))}
         {ocio.length > 0 && (
           <li>
             <div className="flex items-center justify-between gap-3 px-2 py-1">
-              <span className="font-bold text-slate-700">🎉 Ocio</span>
+              <span className="text-[12.5px] font-bold tracking-wide text-ink2">OCIO</span>
               <span className="tabular-nums">
-                <span className="font-extrabold text-slate-900">{eur.format(ocioTotal)}</span>
-                <span className="ml-1.5 text-xs font-bold text-slate-400">{pctFmt.format((ocioTotal / total) * 100)} %</span>
+                <span className="font-extrabold text-ink">{eur.format(ocioTotal)}</span>
+                <span className="ml-1.5 text-xs font-bold text-mute">{pctFmt.format((ocioTotal / total) * 100)} %</span>
               </span>
             </div>
-            <ul className="ml-4 border-l-2 border-slate-100 pl-2">
+            <ul className="ml-4 border-l-2 border-[#f3d5c4] pl-2">
               {ocio.map((d) => (
                 <LegendRow key={d.key} d={d} active={active} setActive={setActive} small />
               ))}
@@ -210,13 +202,11 @@ function LegendRow({
   d,
   active,
   setActive,
-  emoji,
   small,
 }: {
   d: Colored;
   active: string | null;
   setActive: (k: string | null) => void;
-  emoji?: string;
   small?: boolean;
 }) {
   return (
@@ -229,19 +219,18 @@ function LegendRow({
         onBlur={() => setActive(null)}
         onClick={() => setActive(d.key)}
         className={`flex w-full items-center justify-between gap-3 rounded-xl px-2 py-1 text-left transition ${
-          active === d.key ? "bg-violet-50" : "hover:bg-slate-50"
+          active === d.key ? "bg-brand-soft" : "hover:bg-field"
         } ${small ? "text-[13px]" : ""}`}
       >
         <span className="flex min-w-0 items-center gap-2">
           <span aria-hidden="true" className="h-2.5 w-2.5 shrink-0 rounded-[3px]" style={{ background: d.color }} />
-          <span className={`truncate ${small ? "font-semibold text-slate-600" : "font-bold text-slate-700"}`}>
-            {emoji && <span aria-hidden="true">{emoji} </span>}
+          <span className={`truncate ${small ? "font-semibold text-ink2" : "font-bold text-ink"}`}>
             {d.label}
           </span>
         </span>
         <span className="shrink-0 tabular-nums">
-          <span className="font-extrabold text-slate-900">{eur.format(d.value)}</span>
-          <span className="ml-1.5 text-xs font-bold text-slate-400">{pctFmt.format(d.pct)} %</span>
+          <span className="font-extrabold text-ink">{eur.format(d.value)}</span>
+          <span className="ml-1.5 text-xs font-bold text-mute">{pctFmt.format(d.pct)} %</span>
         </span>
       </button>
     </li>

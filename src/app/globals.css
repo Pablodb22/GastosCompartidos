@@ -1,38 +1,63 @@
 @import "tailwindcss";
 
 :root {
-  --background: #fff8f1;
-  --foreground: #2e1065;
   color-scheme: light;
 }
 
+/*
+ * Sistema de diseño: «fintech cálido».
+ *  - Un solo color de acción (violeta). El resto del color significa algo:
+ *    quién (p1 / p2), qué tipo de gasto (fijos / comida / ocio) y en qué estado está.
+ *  - Superficies planas y cálidas; un único degradado por pantalla (la tarjeta de la deuda).
+ *  - La diversión vive en el Wrapped, los mensajes y los pequeños movimientos.
+ */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-brand-50: #f5f3ff;
-  --color-brand-100: #ede9fe;
-  --color-brand-200: #ddd6fe;
-  --color-brand-500: #8b5cf6;
-  --color-brand-600: #7c3aed;
-  --color-brand-700: #6d28d9;
-  --color-brand-900: #3b0764;
-  --font-sans: var(--font-nunito);
+  --color-paper: #f6f4f1;
+  --color-ink: #1c1a2e;
+  --color-ink2: #4f4c68;
+  --color-mute: #6b6883;
+  --color-line: #e6e1da;
+  --color-line2: #efebe5;
+  --color-field: #faf8f5;
+  --color-seg: #ece8e2;
+
+  --color-brand: #5b3fd0;
+  --color-brand-hover: #4c33b8;
+  --color-brand-deep: #2a1b78;
+  --color-brand-soft: #efeafb;
+
+  --color-p1: #5b3fd0;
+  --color-p2: #c2255c;
+
+  --color-fijos: #2a78d6;
+  --color-fijos-soft: #eaf2fd;
+  --color-comida: #17996a;
+  --color-comida-ink: #12794f;
+  --color-comida-soft: #e4f5ec;
+  --color-ocio: #e8622e;
+  --color-ocio-ink: #c2410c;
+  --color-ocio-soft: #fdeee7;
+
+  --color-pend-bg: #fff1d1;
+  --color-pend-fg: #7a4a00;
+  --color-ok-bg: #e4f5ec;
+  --color-ok-fg: #0a6b47;
+  --color-none-bg: #efece8;
+  --color-none-fg: #5a5772;
+  --color-danger: #b42318;
+  --color-danger-soft: #fdecec;
+
+  --font-sans: var(--font-jakarta);
   --font-display: var(--font-fredoka);
-  --font-mono: var(--font-geist-mono);
 }
 
 body {
-  background-color: var(--background);
-  background-image:
-    radial-gradient(40rem 28rem at 0% 0%, rgb(244 114 182 / 0.16), transparent 70%),
-    radial-gradient(36rem 26rem at 100% 10%, rgb(139 92 246 / 0.16), transparent 70%),
-    radial-gradient(40rem 30rem at 50% 100%, rgb(251 191 36 / 0.14), transparent 70%);
-  background-attachment: fixed;
-  color: var(--foreground);
+  background-color: var(--color-paper);
+  color: var(--color-ink);
   font-family: var(--font-sans), system-ui, sans-serif;
-  font-feature-settings: "tnum" 1;
 }
 
+/* La letra redondeada y juguetona se reserva para el Wrapped. */
 .font-display {
   font-family: var(--font-display), var(--font-sans), system-ui, sans-serif;
 }
@@ -41,39 +66,82 @@ body {
   @apply bg-linear-to-r from-violet-600 via-fuchsia-500 to-orange-400 bg-clip-text text-transparent;
 }
 
+@layer components {
 .input {
-  @apply block w-full rounded-xl border-2 border-violet-100 bg-white px-3 py-2 text-sm font-semibold text-slate-800 outline-none transition placeholder:font-normal placeholder:text-slate-400 hover:border-violet-200 focus:border-brand-500 focus:ring-4 focus:ring-brand-100;
+  @apply block w-full rounded-xl border border-line bg-field px-3.5 py-2.5 text-[15px] font-semibold text-ink outline-none transition placeholder:font-normal placeholder:text-mute hover:border-[#d3cdc4] focus:border-brand focus:bg-white focus:ring-4 focus:ring-brand/15;
 }
 
 .label {
-  @apply mb-1.5 block text-xs font-bold text-violet-500;
+  @apply mb-1.5 block text-xs font-bold text-ink2;
 }
 
 .card {
-  @apply rounded-3xl border-2 border-white bg-white/85 shadow-[0_8px_30px_-12px_rgb(124_58_237/0.25)] backdrop-blur-sm;
+  @apply rounded-[20px] border border-line bg-white;
 }
 
 .btn-primary {
-  @apply inline-flex items-center justify-center gap-2 rounded-full bg-linear-to-r from-violet-600 to-fuchsia-500 px-5 py-2.5 text-sm font-extrabold text-white shadow-[0_6px_16px_-6px_rgb(192_38_211/0.7)] transition hover:-translate-y-0.5 hover:shadow-[0_10px_20px_-8px_rgb(192_38_211/0.8)] active:translate-y-0 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-fuchsia-300 disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0;
+  @apply inline-flex items-center justify-center gap-2 rounded-[14px] bg-brand px-5 py-3 text-[15px] font-extrabold text-white shadow-[0_8px_18px_-6px_rgb(91_63_208/0.45)] transition hover:bg-brand-hover focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:cursor-not-allowed disabled:opacity-60;
 }
 
 .btn-secondary {
-  @apply inline-flex items-center justify-center gap-2 rounded-full border-2 border-violet-200 bg-white px-4 py-2 text-sm font-bold text-violet-700 transition hover:-translate-y-0.5 hover:border-violet-300 hover:bg-violet-50 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-fuchsia-300;
+  @apply inline-flex items-center justify-center gap-2 rounded-[14px] border border-[#d9d4cc] bg-white px-4 py-2.5 text-sm font-bold text-ink transition hover:bg-field focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:cursor-not-allowed disabled:opacity-60;
 }
 
-@keyframes wiggle {
-  0%, 100% { transform: rotate(0deg); }
-  25% { transform: rotate(-10deg); }
-  75% { transform: rotate(10deg); }
+.btn-ghost {
+  @apply inline-flex items-center justify-center gap-2 rounded-[14px] px-3 py-2 text-sm font-bold text-brand transition hover:bg-brand-soft focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand;
 }
 
-.hover-wiggle:hover > .wiggle,
-.wiggle:hover {
-  animation: wiggle 0.4s ease-in-out;
+.btn-danger {
+  @apply inline-flex items-center justify-center gap-2 rounded-[14px] bg-danger-soft px-4 py-2.5 text-sm font-bold text-danger transition hover:brightness-95 focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-danger;
 }
+
+/* Selector (2-4 opciones): vale con botones (aria-pressed) o con radios dentro de un <label>. */
+.seg {
+  @apply flex gap-0.5 rounded-[13px] bg-seg p-[3px];
+}
+.seg-item {
+  @apply flex flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-[10px] px-3 py-2 text-center text-[13.5px] font-semibold text-ink2 transition hover:text-ink aria-pressed:bg-white aria-pressed:font-bold aria-pressed:text-brand aria-pressed:shadow-[0_1px_3px_rgb(28_26_46/0.15)] has-checked:bg-white has-checked:font-bold has-checked:text-brand has-checked:shadow-[0_1px_3px_rgb(28_26_46/0.15)] has-focus-visible:ring-4 has-focus-visible:ring-brand/20 focus-visible:ring-4 focus-visible:ring-brand/20 focus-visible:outline-none;
+}
+
+/* Etiquetas de estado */
+.chip {
+  @apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold whitespace-nowrap;
+}
+.chip-pend {
+  @apply bg-pend-bg text-pend-fg;
+}
+.chip-ok {
+  @apply bg-ok-bg text-ok-fg;
+}
+.chip-none {
+  @apply bg-none-bg text-none-fg;
+}
+}
+
+/* Que el contenido no quede tapado por la barra inferior ni por el botón flotante */
+.pb-nav {
+  padding-bottom: calc(10rem + env(safe-area-inset-bottom));
+}
+@media (min-width: 768px) {
+  .pb-nav {
+    padding-bottom: 3rem;
+  }
+}
+
+@keyframes pop-in {
+  0% { opacity: 0; transform: scale(0.85) translateY(6px); }
+  60% { opacity: 1; transform: scale(1.04); }
+  100% { opacity: 1; transform: none; }
+}
+@keyframes sheet-up {
+  from { transform: translateY(24px); opacity: 0; }
+  to { transform: none; opacity: 1; }
+}
+.pop-in { animation: pop-in 0.35s cubic-bezier(0.2, 0.9, 0.3, 1.2) both; }
+.sheet-up { animation: sheet-up 0.28s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
 
 @media (prefers-reduced-motion: reduce) {
-  .wiggle, .btn-primary, .btn-secondary { animation: none !important; transition: none !important; }
+  .pop-in, .sheet-up { animation: none !important; }
 }
 
 /* ---------- Wrapped (historias) ---------- */

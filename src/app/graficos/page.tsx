@@ -1,24 +1,34 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
+import Link from "next/link";
 import { AppHeader } from "@/components/app-header";
 import { PieChart } from "@/components/charts";
-import { formatEUR } from "@/lib/calc";
+import { HeaderActions } from "@/components/header-actions";
+import { IconSparkle, IconUsers } from "@/components/icons";
+import { MonthNav } from "@/components/month-nav";
+import { beneficiaryOf, formatEUR } from "@/lib/calc";
 import type { PersonId } from "@/lib/config";
 import { getCouple, listExpensesBetween, listMonthsWithData, purgeExpired } from "@/lib/expenses";
-import { MonthPicker } from "@/components/month-picker";
+import { getMe } from "@/lib/me";
 import { formatMonth, getRetention, lastDayOfMonth } from "@/lib/periods";
-import { pieFor, type PieData } from "@/lib/stats";
+import { pieFor } from "@/lib/stats";
 
 export const metadata: Metadata = { title: "Gráficos · Cuentas en pareja" };
-
-const PERSON_COLOR: Record<PersonId, string> = { 1: "#7c3aed", 2: "#db2777" };
 
 export default function ChartsPage({ searchParams }: PageProps<"/graficos">) {
   return (
     <>
-      <AppHeader active="graficos" />
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 sm:px-6 sm:py-8">
-        <Suspense fallback={<div className="h-96 animate-pulse rounded-3xl bg-violet-100/70" aria-busy="true" />}>
+      <AppHeader
+        active="graficos"
+        actions={
+          <Suspense>
+            <HeaderActions />
+          </Suspense>
+        }
+      />
+      <main className="pb-nav mx-auto w-full max-w-3xl flex-1 px-4 pt-4 sm:px-6 sm:pt-6">
+        <h1 className="mb-1 text-[22px] font-extrabold tracking-tight">Gráficos</h1>
+        <Suspense fallback={<div className="mt-4 h-96 animate-pulse rounded-[20px] bg-seg" aria-busy="true" />}>
           <Charts searchParams={searchParams} />
         </Suspense>
       </main>
@@ -26,79 +36,106 @@ export default function ChartsPage({ searchParams }: PageProps<"/graficos">) {
   );
 }
 
+type Who = "1" | "2" | "pareja";
+
 async function Charts({ searchParams }: { searchParams: PageProps<"/graficos">["searchParams"] }) {
-  const { mes } = await searchParams;
+  const { mes, quien } = await searchParams;
   const retention = getRetention();
-  const [couple] = await Promise.all([getCouple(), purgeExpired(retention)]);
+  const [couple, me] = await Promise.all([getCouple(), getMe(), purgeExpired(retention)]);
   const month = typeof mes === "string" && retention.months.includes(mes) ? mes : retention.currentMonth;
+  const who: Who = quien === "1" || quien === "2" || quien === "pareja" ? quien : String(me ?? 1) as Who;
   const [all, monthsWithData] = await Promise.all([
     listExpensesBetween(`${month}-01`, lastDayOfMonth(month)),
     listMonthsWithData(),
   ]);
   const monthName = formatMonth(month).split(" ")[0].toLowerCase();
+  const pie = pieFor(all, month, who === "pareja" ? "pareja" : (Number(who) as PersonId));
+  const names = couple.names;
+
+  const hrefFor = (w: Who) => {
+    const params = new URLSearchParams({ quien: w });
+    if (month !== retention.currentMonth) params.set("mes", month);
+    return `/graficos?${params.toString()}`;
+  };
+
+  // «Dato»: lo que cada uno se ha dado en caprichos propios (ocio solo suyo).
+  const own = (p: PersonId) =>
+    all.filter((e) => e.seccion === "ocio" && beneficiaryOf(e) === p).reduce((a, e) => a + e.importe, 0);
+  const ownAmount = who === "pareja" ? 0 : own(Number(who) as PersonId);
+  const isMe = who !== "pareja" && Number(who) === me;
+  let fact: string | null = null;
+  if (who !== "pareja" && ownAmount > 0) {
+    fact = `Dato: este mes ${isMe ? "te has dado" : `${names[Number(who) as PersonId]} se ha dado`} ${formatEUR(ownAmount)} en caprichos propios. Nadie juzga (la app, un poco).`;
+  } else if (who === "pareja" && pie.ocioTotal > 0) {
+    fact = `Dato: en pareja habéis gastado ${formatEUR(pie.ocioTotal)} en ocio. Se nota que os queréis (y que os gusta salir).`;
+  }
+
+  const options: { id: Who; label: string }[] = [
+    { id: "1", label: names[1] },
+    { id: "2", label: names[2] },
+    { id: "pareja", label: "En pareja" },
+  ];
 
   return (
-    <div className="space-y-6">
-      <MonthPicker basePath="/graficos" month={month} retention={retention} monthsWithData={monthsWithData} />
+    <div className="space-y-3">
+      <MonthNav
+        basePath="/graficos"
+        month={month}
+        currentMonth={retention.currentMonth}
+        firstMonth={retention.months[0]}
+        monthsWithData={monthsWithData}
+        query={{ quien: who }}
+      />
 
-      <div className="grid grid-cols-[minmax(0,1fr)] gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {([1, 2] as const).map((p) => (
-          <ChartCard
-            key={p}
-            id={`persona-${p}`}
-            badge={
-              <span
-                className="flex h-10 w-10 items-center justify-center rounded-2xl text-lg font-extrabold text-white"
-                style={{ background: PERSON_COLOR[p] }}
-              >
-                {couple.names[p].slice(0, 1).toUpperCase()}
-              </span>
-            }
-            title={couple.names[p]}
-            caption={`Su parte de los gastos de ${monthName}`}
-            data={pieFor(all, month, p)}
-          />
+      <nav className="seg" aria-label="Ver gráfico de">
+        {options.map((o) => (
+          <Link
+            key={o.id}
+            href={hrefFor(o.id)}
+            aria-current={who === o.id ? "page" : undefined}
+            className={`seg-item truncate py-2.5! aria-[current=page]:bg-white aria-[current=page]:font-bold aria-[current=page]:text-brand aria-[current=page]:shadow-[0_1px_3px_rgb(28_26_46/0.15)]`}
+          >
+            {o.label}
+          </Link>
         ))}
-        <ChartCard
-          id="pareja"
-          badge={<span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-violet-100 text-xl">💑</span>}
-          title="En pareja"
-          caption={`Gastos comunes de ${monthName}`}
-          data={pieFor(all, month, "pareja")}
-        />
-      </div>
-    </div>
-  );
-}
+      </nav>
 
-function ChartCard({
-  id,
-  badge,
-  title,
-  caption,
-  data,
-}: {
-  id: string;
-  badge: React.ReactNode;
-  title: string;
-  caption: string;
-  data: PieData;
-}) {
-  return (
-    <section className="card p-5" aria-labelledby={id}>
-      <div className="flex items-center gap-3">
-        <span aria-hidden="true">{badge}</span>
-        <div className="min-w-0">
-          <h2 id={id} className="font-display truncate text-xl font-semibold text-violet-950">
-            {title}
-          </h2>
-          <p className="text-xs font-semibold text-slate-500">{caption}</p>
+      <section className="card p-5" aria-labelledby="quien">
+        <div className="flex items-center gap-3">
+          <span
+            aria-hidden="true"
+            className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-base font-extrabold text-white ${
+              who === "1" ? "bg-p1" : who === "2" ? "bg-p2" : "bg-brand"
+            }`}
+          >
+            {who === "pareja" ? <IconUsers className="h-5 w-5" /> : names[Number(who) as PersonId].slice(0, 1).toUpperCase()}
+          </span>
+          <div className="min-w-0 flex-1">
+            <h2 id="quien" className="truncate text-base font-extrabold">
+              {who === "pareja" ? "En pareja" : names[Number(who) as PersonId]}
+            </h2>
+            <p className="text-[12.5px] text-mute">
+              {who === "pareja" ? `Gastos comunes de ${monthName}` : `${isMe ? "Tu" : "Su"} parte de ${monthName}`}
+            </p>
+          </div>
+          <p className="text-2xl font-extrabold tracking-tight tabular-nums">{formatEUR(pie.total)}</p>
         </div>
-      </div>
-      <p className="font-display mt-3 text-4xl font-semibold text-slate-900">{formatEUR(data.total)}</p>
-      <div className="mt-3">
-        <PieChart slices={data.slices} total={data.total} ocioTotal={data.ocioTotal} title={`${title}: ${caption}`} />
-      </div>
-    </section>
+        <div className="mt-4">
+          <PieChart
+            slices={pie.slices}
+            total={pie.total}
+            ocioTotal={pie.ocioTotal}
+            title={`${who === "pareja" ? "En pareja" : names[Number(who) as PersonId]}: gastos de ${monthName}`}
+          />
+        </div>
+      </section>
+
+      {fact && (
+        <p className="flex items-center gap-2.5 rounded-2xl bg-brand-soft px-3.5 py-3 text-[13px] leading-snug font-semibold text-[#3b2a9e]">
+          <IconSparkle className="h-5 w-5 shrink-0" />
+          {fact}
+        </p>
+      )}
+    </div>
   );
 }
