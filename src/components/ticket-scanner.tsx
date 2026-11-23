@@ -372,7 +372,7 @@ function ReviewForm({
           </div>
         </fieldset>
 
-        {section === "ocio" ? (
+        {section ? (
           <fieldset>
             <legend className="label">¿Para quién es?</legend>
             <div className="seg">
@@ -385,12 +385,7 @@ function ReviewForm({
             </div>
           </fieldset>
         ) : (
-          <>
-            <input type="hidden" name="para" value="pareja" />
-            {section === "comida" && (
-              <p className="-mt-1 text-xs font-medium text-mute">La compra es para los dos: se reparte a medias.</p>
-            )}
-          </>
+          <input type="hidden" name="para" value="pareja" />
         )}
 
         <fieldset>

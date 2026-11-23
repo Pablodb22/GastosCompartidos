@@ -190,7 +190,7 @@ function MonthCard({
 }) {
   const total = summary.overall.total;
   let delta: string | null = null;
-  if (prevTotal !== null && prevTotal > 0 && total > 0) {
+  if (prevTotal !== null && prevTotal >= 50 && total > 0 && Math.abs(total - prevTotal) / prevTotal < 5) {
     const pct = Math.round(((total - prevTotal) / prevTotal) * 100);
     const m = formatMonth(prevMonth).split(" ")[0].toLowerCase();
     delta = pct === 0 ? `Igual que en ${m}` : `${Math.abs(pct)} % ${pct > 0 ? "más" : "menos"} que en ${m}`;
