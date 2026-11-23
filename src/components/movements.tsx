@@ -9,7 +9,7 @@ import { IconChevronDown, IconDots, IconEdit, IconReceipt, IconTrash } from "@/c
 import { KIND } from "@/components/icons";
 import { SettleButton } from "@/components/settle-button";
 import { beneficiaryOf, formatEUR, formatPct, owedAmount, type Expense } from "@/lib/calc";
-import type { PersonId } from "@/lib/config";
+import type { PersonId, Section } from "@/lib/config";
 import { formatDate } from "@/lib/periods";
 
 type Names = Record<PersonId, string>;
@@ -29,11 +29,12 @@ export function Movements({
   maxDate: string;
 }) {
   const [filter, setFilter] = useState<Filter>("todos");
+  const [kind, setKind] = useState<Section | "todos">("todos");
   const [editing, setEditing] = useState<Expense | null>(null);
 
   const pending = expenses.filter((e) => owedAmount(e) > 0 && !e.saldado).length;
   const paid = expenses.filter((e) => owedAmount(e) > 0 && e.saldado).length;
-  const shown = expenses.filter((e) =>
+  const shown = expenses.filter((e) => kind === "todos" || e.seccion === kind).filter((e) =>
     filter === "todos" ? true : filter === "pendientes" ? owedAmount(e) > 0 && !e.saldado : owedAmount(e) > 0 && e.saldado,
   );
 
@@ -64,6 +65,29 @@ export function Movements({
         </div>
       )}
 
+      {expenses.length > 0 && (
+        <div className="mt-2.5 flex flex-wrap gap-1.5" role="group" aria-label="Filtrar por tipo">
+          {(
+            [
+              ["todos", "Todos los tipos"],
+              ["comida", "Compra"],
+              ["ocio", "Ocio"],
+              ["fijos", "Fijos"],
+            ] as const
+          ).map(([id, text]) => (
+            <button
+              key={id}
+              type="button"
+              aria-pressed={kind === id}
+              onClick={() => setKind(id)}
+              className="rounded-full border border-line bg-white px-3 py-1.5 text-[13px] font-semibold text-ink2 transition hover:bg-field aria-pressed:border-brand aria-pressed:bg-brand-soft aria-pressed:font-bold aria-pressed:text-brand focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand"
+            >
+              {text}
+            </button>
+          ))}
+        </div>
+      )}
+
       {expenses.length === 0 ? (
         <div className="px-4 py-10 text-center">
           <p className="text-[15px] font-bold">Mes en blanco. Qué sospechosamente tranquilo…</p>
@@ -74,7 +98,7 @@ export function Movements({
         </div>
       ) : shown.length === 0 ? (
         <p className="px-4 py-8 text-center text-sm font-semibold text-mute">
-          {filter === "pendientes" ? "Nada pendiente. Todo al día." : "Todavía no hay nada marcado como pagado."}
+          {kind !== "todos" || filter === "todos" ? "No hay gastos con este filtro." : filter === "pendientes" ? "Nada pendiente. Todo al día." : "Todavía no hay nada marcado como pagado."}
         </p>
       ) : (
         <ul className="mt-2 divide-y divide-line2">
