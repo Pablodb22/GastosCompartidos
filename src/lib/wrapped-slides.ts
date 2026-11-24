@@ -33,6 +33,8 @@ export type Slide = {
   footnote?: string;
   /** Duración en milisegundos (por defecto, 6500). */
   ms?: number;
+  /** Capítulo: «Juntos» o la persona de la que habla la diapositiva. */
+  chapter?: { label: string; person?: 1 | 2 };
   /** Última diapositiva: muestra los botones de cerrar y volver a verlo. */
   final?: boolean;
 };
@@ -184,6 +186,7 @@ export function buildSlides(d: WrappedData): Slide[] {
       "Hemos revisado cada euro. Sí, también ese. 👀",
       "Spotify tiene vuestras canciones. Nosotros, vuestros tickets. 🧾",
       "Preparaos: esto va a doler un poquito. Con cariño. 💜",
+      "Dentro: vosotros dos, cada uno por separado y quién invita más. Sin spoilers. 🤐",
     ]),
     footnote: `${dayMonthYear(d.from)} – ${dayMonthYear(d.to)} · ${plural(d.count, "gasto", "gastos")}`,
     ms: 5500,
@@ -465,6 +468,27 @@ export function buildSlides(d: WrappedData): Slide[] {
       visual: { type: "tiles", items: tiles },
       text,
     });
+
+    // Su capricho estrella: lo que más ha repetido de lo suyo.
+    const star = s.star;
+    if (star && star.times >= 2) {
+      const jokes = [
+        `«Solo uno más» tiene nombre, y es ${name}. 😅`,
+        `${plural(star.times, "vez", "veces")}. Tu cartera pide un abogado. ⚖️`,
+        `Ya te conocen en el sitio. Y no precisamente por el nombre. 🕵️`,
+        `Si fuera una suscripción, te saldría más barata. 📉`,
+      ];
+      push({
+        id: `star-${p}`,
+        theme: p === 1 ? "grape" : "magenta",
+        emoji: "🌟",
+        kicker: `${name} · su capricho estrella`,
+        title: star.name,
+        big: { value: star.times, kind: "int", suffix: "veces en el año" },
+        text: choose(`star-${p}`, jokes),
+        footnote: `${eur(star.total)} en total, de lo tuyo y para ti. Nadie juzga (la app, un poco).`,
+      });
+    }
   }
 
   // 14. Racha sin gastar
@@ -520,6 +544,30 @@ export function buildSlides(d: WrappedData): Slide[] {
     }
   }
 
+  // 15b. Los premios
+  {
+    const items: { label: string; value: string; note?: string }[] = [];
+    if (d.plans[0]) items.push({ label: "Mejor plan en pareja", value: d.plans[0].name, note: eur(d.plans[0].total) });
+    const calm = d.months.filter((m) => m.complete && m.total > 0).sort((a, b) => a.total - b.total)[0];
+    if (calm) items.push({ label: "Récord de calma", value: cap(monthName(calm.month)), note: eur(calm.total) });
+    if (d.products[0]) items.push({ label: "Producto del año", value: d.products[0].name, note: `${intFmt.format(d.products[0].times)} veces` });
+    if (items.length >= 2) {
+      push({
+        id: "awards",
+        theme: "orange",
+        emoji: "🏆",
+        kicker: `Los premios Cuentas ${d.year}`,
+        title: "Y el Óscar es para…",
+        visual: { type: "ranking", items },
+        text: choose("awards", [
+          "Discurso de agradecimiento: «gracias al ticket que nunca falla». 🎤",
+          "Los jueces lo han tenido claro. Y el cajero también. 🏅",
+          "No hay premio económico, solo la gloria (y el recibo). 🥇",
+        ]),
+      });
+    }
+  }
+
   // 16. Perfil
   {
     const a = archetypeOf(d);
@@ -548,10 +596,16 @@ export function buildSlides(d: WrappedData): Slide[] {
     ms: 8000,
   });
 
+  // Capítulos: lo de cada uno lleva su nombre; el resto es de los dos.
+  for (const sl of slides) {
+    const m = sl.id.match(/^(?:person|star)-([12])$/);
+    sl.chapter = m ? { label: d.names[Number(m[1]) as 1 | 2], person: Number(m[1]) as 1 | 2 } : { label: "Juntos" };
+  }
+
   // Que no haya dos diapositivas seguidas del mismo color (salvo las de cada persona, que llevan el suyo).
   const PALETTE: ThemeKey[] = ["pink", "blue", "orange", "teal", "rose", "violet", "grape", "magenta"];
   for (let i = 1; i < slides.length; i++) {
-    if (slides[i].theme !== slides[i - 1].theme || slides[i].id.startsWith("person-")) continue;
+    if (slides[i].theme !== slides[i - 1].theme || slides[i].id.startsWith("person-") || slides[i].id.startsWith("star-")) continue;
     const next = slides[i + 1]?.theme;
     slides[i].theme = PALETTE.find((t) => t !== slides[i - 1].theme && t !== next) ?? slides[i].theme;
   }

@@ -213,7 +213,26 @@ export function WrappedStory({ slides, year, shareText }: { slides: Slide[]; yea
             ))}
           </div>
           <div className="mt-[3cqw] flex items-center justify-between">
-            <span className="text-[3.6cqw] font-extrabold tracking-wide opacity-90">🎁 Wrapped {year}</span>
+            <span className="flex items-center gap-[2cqw] text-[3.6cqw] font-extrabold tracking-wide">
+              <span className="opacity-90">🎁 Wrapped {year}</span>
+              {slide.chapter && (
+                <span className="flex items-center gap-[1.4cqw] rounded-full bg-white/20 py-[0.8cqw] pr-[2.6cqw] pl-[1cqw]">
+                  {slide.chapter.person ? (
+                    <span
+                      aria-hidden="true"
+                      className={`flex h-[5cqw] w-[5cqw] items-center justify-center rounded-full text-[3cqw] ${
+                        slide.chapter.person === 1 ? "bg-[#5856d6]" : "bg-[#ff2d55]"
+                      }`}
+                    >
+                      {slide.chapter.label.slice(0, 1).toUpperCase()}
+                    </span>
+                  ) : (
+                    <span className="pl-[1.6cqw]" />
+                  )}
+                  {slide.chapter.label}
+                </span>
+              )}
+            </span>
             <div className="flex items-center gap-[2cqw]">
               <button
                 type="button"

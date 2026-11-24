@@ -18,7 +18,7 @@ type Active = (typeof TABS)[number]["key"] | "wrapped";
 export function AppHeader({ active, actions }: { active: Active; actions?: ReactNode }) {
   return (
     <>
-      <header className="sticky top-0 z-30 border-b border-line bg-paper">
+      <header className="sticky top-0 z-30 border-b border-line bg-paper/85 backdrop-blur-xl">
         <div className="mx-auto flex h-14 max-w-6xl items-center gap-3 px-4 sm:px-6">
           <Link href="/" className="flex items-center gap-2.5 rounded-lg focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand">
             <Logo className="h-8 w-8" />
@@ -48,7 +48,7 @@ export function AppHeader({ active, actions }: { active: Active; actions?: React
 
       <nav
         aria-label="Secciones"
-        className="fixed inset-x-0 bottom-0 z-40 flex h-[72px] border-t border-line bg-white pb-[env(safe-area-inset-bottom)] md:hidden"
+        className="fixed inset-x-0 bottom-0 z-40 flex h-[72px] border-t border-line bg-white/85 backdrop-blur-xl pb-[env(safe-area-inset-bottom)] md:hidden"
       >
         {TABS.map((t) => (
           <Link

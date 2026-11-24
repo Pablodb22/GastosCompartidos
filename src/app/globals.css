@@ -5,49 +5,49 @@
 }
 
 /*
- * Sistema de diseño: «fintech cálido».
- *  - Un solo color de acción (violeta). El resto del color significa algo:
+ * Sistema de diseño: «iPhone».
+ *  - Un solo color de acción (azul del sistema). El resto del color significa algo:
  *    quién (p1 / p2), qué tipo de gasto (fijos / comida / ocio) y en qué estado está.
  *  - Superficies planas y cálidas; un único degradado por pantalla (la tarjeta de la deuda).
  *  - La diversión vive en el Wrapped, los mensajes y los pequeños movimientos.
  */
 @theme inline {
-  --color-paper: #f6f4f1;
-  --color-ink: #1c1a2e;
-  --color-ink2: #4f4c68;
-  --color-mute: #6b6883;
-  --color-line: #e6e1da;
-  --color-line2: #efebe5;
-  --color-field: #faf8f5;
-  --color-seg: #ece8e2;
+  --color-paper: #f2f2f7;
+  --color-ink: #000000;
+  --color-ink2: #3c3c43;
+  --color-mute: #6c6c70;
+  --color-line: #e5e5ea;
+  --color-line2: #ececf0;
+  --color-field: #f7f7fa;
+  --color-seg: #e4e4e9;
 
-  --color-brand: #5b3fd0;
-  --color-brand-hover: #4c33b8;
-  --color-brand-deep: #2a1b78;
-  --color-brand-soft: #efeafb;
+  --color-brand: #007aff;
+  --color-brand-hover: #0066d6;
+  --color-brand-deep: #3634a3;
+  --color-brand-soft: #e5f1ff;
 
-  --color-p1: #5b3fd0;
-  --color-p2: #c2255c;
+  --color-p1: #5856d6;
+  --color-p2: #ff2d55;
 
-  --color-fijos: #2a78d6;
-  --color-fijos-soft: #eaf2fd;
-  --color-comida: #17996a;
-  --color-comida-ink: #12794f;
-  --color-comida-soft: #e4f5ec;
-  --color-ocio: #e8622e;
-  --color-ocio-ink: #c2410c;
-  --color-ocio-soft: #fdeee7;
+  --color-fijos: #007aff;
+  --color-fijos-soft: #e5f1ff;
+  --color-comida: #34c759;
+  --color-comida-ink: #1f8a3b;
+  --color-comida-soft: #e6f8ea;
+  --color-ocio: #ff9500;
+  --color-ocio-ink: #b45f00;
+  --color-ocio-soft: #fff1dc;
 
-  --color-pend-bg: #fff1d1;
-  --color-pend-fg: #7a4a00;
-  --color-ok-bg: #e4f5ec;
-  --color-ok-fg: #0a6b47;
-  --color-none-bg: #efece8;
-  --color-none-fg: #5a5772;
-  --color-danger: #b42318;
-  --color-danger-soft: #fdecec;
+  --color-pend-bg: #fff1dc;
+  --color-pend-fg: #8a4b00;
+  --color-ok-bg: #e6f8ea;
+  --color-ok-fg: #1a7a33;
+  --color-none-bg: #ececf0;
+  --color-none-fg: #5c5c60;
+  --color-danger: #d70015;
+  --color-danger-soft: #ffe9ec;
 
-  --font-sans: var(--font-jakarta);
+  --font-sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", var(--font-jakarta);
   --font-display: var(--font-fredoka);
 }
 
@@ -76,11 +76,11 @@ body {
 }
 
 .card {
-  @apply rounded-[20px] border border-line bg-white;
+  @apply rounded-[14px] border border-line bg-white;
 }
 
 .btn-primary {
-  @apply inline-flex items-center justify-center gap-2 rounded-[14px] bg-brand px-5 py-3 text-[15px] font-extrabold text-white shadow-[0_8px_18px_-6px_rgb(91_63_208/0.45)] transition hover:bg-brand-hover focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:cursor-not-allowed disabled:opacity-60;
+  @apply inline-flex items-center justify-center gap-2 rounded-[14px] bg-brand px-5 py-3 text-[15px] font-semibold text-white shadow-[0_8px_18px_-6px_rgb(0_122_255/0.4)] transition hover:bg-brand-hover focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:cursor-not-allowed disabled:opacity-60;
 }
 
 .btn-secondary {
@@ -97,10 +97,10 @@ body {
 
 /* Selector (2-4 opciones): vale con botones (aria-pressed) o con radios dentro de un <label>. */
 .seg {
-  @apply flex gap-0.5 rounded-[13px] bg-seg p-[3px];
+  @apply flex gap-0.5 rounded-[9px] bg-seg p-0.5;
 }
 .seg-item {
-  @apply flex flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-[10px] px-3 py-2 text-center text-[13.5px] font-semibold text-ink2 transition hover:text-ink aria-pressed:bg-white aria-pressed:font-bold aria-pressed:text-brand aria-pressed:shadow-[0_1px_3px_rgb(28_26_46/0.15)] has-checked:bg-white has-checked:font-bold has-checked:text-brand has-checked:shadow-[0_1px_3px_rgb(28_26_46/0.15)] has-focus-visible:ring-4 has-focus-visible:ring-brand/20 focus-visible:ring-4 focus-visible:ring-brand/20 focus-visible:outline-none;
+  @apply flex flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-[7px] px-3 py-1.5 text-center text-[13.5px] font-semibold text-ink2 transition hover:text-ink aria-pressed:bg-white aria-pressed:font-bold aria-pressed:text-brand aria-pressed:shadow-[0_1px_3px_rgb(28_26_46/0.15)] has-checked:bg-white has-checked:font-bold has-checked:text-brand has-checked:shadow-[0_1px_3px_rgb(28_26_46/0.15)] has-focus-visible:ring-4 has-focus-visible:ring-brand/20 focus-visible:ring-4 focus-visible:ring-brand/20 focus-visible:outline-none;
 }
 
 /* Etiquetas de estado */

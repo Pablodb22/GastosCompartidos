@@ -63,6 +63,8 @@ export type PersonStats = {
   own: number;
   /** Su capricho más caro. */
   ownTop: { name: string; amount: number } | null;
+  /** El gasto solo suyo que más ha repetido (puede faltar en Wrapped guardados antes de existir). */
+  star?: { name: string; times: number; total: number } | null;
 };
 
 export type WrappedData = {
@@ -273,6 +275,7 @@ export function buildWrapped(
     let share = 0;
     let own = 0;
     let ownTop: PersonStats["ownTop"] = null;
+    const ownGroups = new Map<string, { name: string; times: number; total: number }>();
     for (const e of list) {
       const s = shareOf(e, p);
       if (s <= 0.004) continue;
@@ -281,6 +284,11 @@ export function buildWrapped(
       if (c !== "alquiler" && c !== "suministros") cats.set(c, (cats.get(c) ?? 0) + s);
       if (beneficiaryOf(e) === p) {
         own += s;
+        const key = normalize(e.concepto);
+        const g = ownGroups.get(key) ?? { name: capitalize(e.concepto.trim()), times: 0, total: 0 };
+        g.times += 1;
+        g.total += s;
+        ownGroups.set(key, g);
         if (!ownTop || s > ownTop.amount) ownTop = { name: capitalize(e.concepto.trim()), amount: round2(s) };
       }
     }
@@ -290,6 +298,10 @@ export function buildWrapped(
       top: topCat ? { key: topCat[0], amount: round2(topCat[1]) } : null,
       own: round2(own),
       ownTop,
+      star:
+        [...ownGroups.values()]
+          .sort((a, b) => b.times - a.times || b.total - a.total)
+          .map((g) => ({ ...g, total: round2(g.total) }))[0] ?? null,
     };
   }
 
