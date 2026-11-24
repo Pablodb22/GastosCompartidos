@@ -51,7 +51,6 @@ Estilo iPhone: fondo gris agrupado, azul del sistema, tipografía del sistema, l
   alquiler conserva el % de sueldos con el que se registró.
 - **Navegar por dos años**: el selector de la parte superior tiene el año y los doce meses; los meses sin gastos se ven
   apagados y los futuros no se pueden elegir. Sirve igual en Cuentas, Gráficos y la exportación a Excel.
-- **Consejos para ahorrar** (en Gráficos): salen de los gastos del mes, unos sobre lo individual (el mayor capricho, la compra, los gastos solo de una persona) y otros sobre lo de la pareja (fijos, ocio, súper, pagos pendientes).
 - **🎁 Wrapped**: un resumen del año al estilo Spotify, con humor y en formato **historias** (toque a la derecha:
   siguiente · a la izquierda: anterior · mantener pulsado: pausa; también con flechas y espacio en el ordenador). Cuenta
   cuánto gastasteis (juntos y cada uno, con su capítulo y su «capricho estrella»), los premios del año, el mes y el día más caros, vuestro día de la semana, el sitio favorito, el plan y el producto
