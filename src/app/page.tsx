@@ -146,7 +146,7 @@ function DebtHero({ summary, names, me, month }: { summary: MonthSummary; names:
   else headline = `${names[debtor]} debe a ${names[creditor]}`;
 
   return (
-    <section aria-labelledby="deuda" className="rounded-[20px] bg-linear-to-br from-brand to-brand-deep p-5 text-white shadow-[0_12px_28px_-12px_rgb(91_63_208/0.6)]">
+    <section aria-labelledby="deuda" className="rounded-[22px] bg-linear-to-br from-[#5e5ce6] to-[#0a84ff] p-5 text-white shadow-[0_10px_24px_rgb(10_132_255/0.28)]">
       <h2 id="deuda" className="text-[13px] font-bold text-white/80">
         {headline}
       </h2>
@@ -305,7 +305,7 @@ function DashboardSkeleton() {
     <div className="animate-pulse space-y-4" aria-busy="true" aria-label="Cargando">
       <div className="h-10 w-56 rounded-xl bg-seg" />
       <div className="grid gap-4 lg:grid-cols-[1fr_380px]">
-        <div className="h-48 rounded-[20px] bg-[#d9d0f2] lg:col-start-2" />
+        <div className="h-48 rounded-[20px] bg-[#cfe0f7] lg:col-start-2" />
         <div className="h-96 rounded-[20px] bg-seg lg:col-start-1 lg:row-start-1 lg:row-span-2" />
         <div className="h-40 rounded-[20px] bg-seg lg:col-start-2" />
       </div>

@@ -4,7 +4,7 @@ Aplicación para que una pareja lleve sus gastos compartidos. Construida con Nex
 
 ## Diseño
 
-Tono «fintech cálido»: serio donde se manejan números y divertido donde toca.
+Estilo iPhone: fondo gris agrupado, azul del sistema, tipografía del sistema, listas con iconos, controles segmentados y barra de pestañas translúcida. Serio donde se manejan números y divertido donde toca.
 
 - **Pantalla Cuentas**: selector de mes (‹ Noviembre 2026 ›, con desplegable de año y mes), una única tarjeta con
   degradado para la deuda («Lucía te debe 419,06 €»), el gasto del mes (con la variación respecto al mes anterior),
@@ -15,7 +15,7 @@ Tono «fintech cálido»: serio donde se manejan números y divertido donde toca
 - **«¿Quién eres?»**: se elige una vez por móvil (cookie `yo`, no es una cuenta) y la app habla en primera persona
   («Tú», «Solo yo», «Lucía te debe»).
 - **Barra inferior** en el móvil (Cuentas, Gráficos, Wrapped) y pestañas arriba en el escritorio.
-- Tipografía Plus Jakarta Sans, iconos de línea, colores fijos por tipo (azul fijos, verde compra, naranja ocio).
+- Tipografía del sistema (en dispositivos Apple; Plus Jakarta Sans en el resto), iconos de línea, colores fijos por tipo (azul fijos, verde compra, naranja ocio).
   Fredoka, los degradados y los emojis se reservan para el **Wrapped**; el humor vive en los textos pequeños.
 
 ## Funcionalidad
@@ -51,9 +51,10 @@ Tono «fintech cálido»: serio donde se manejan números y divertido donde toca
   alquiler conserva el % de sueldos con el que se registró.
 - **Navegar por dos años**: el selector de la parte superior tiene el año y los doce meses; los meses sin gastos se ven
   apagados y los futuros no se pueden elegir. Sirve igual en Cuentas, Gráficos y la exportación a Excel.
+- **Consejos para ahorrar** (en Gráficos): salen de los gastos del mes, unos sobre lo individual (el mayor capricho, la compra, los gastos solo de una persona) y otros sobre lo de la pareja (fijos, ocio, súper, pagos pendientes).
 - **🎁 Wrapped**: un resumen del año al estilo Spotify, con humor y en formato **historias** (toque a la derecha:
   siguiente · a la izquierda: anterior · mantener pulsado: pausa; también con flechas y espacio en el ordenador). Cuenta
-  cuánto gastasteis, el mes y el día más caros, vuestro día de la semana, el sitio favorito, el plan y el producto
+  cuánto gastasteis (juntos y cada uno, con su capítulo y su «capricho estrella»), los premios del año, el mes y el día más caros, vuestro día de la semana, el sitio favorito, el plan y el producto
   estrella, quién ha sacado más la tarjeta, la parte de cada uno, la mayor racha sin gastar, las cuentas pendientes y
   vuestro «perfil financiero».
   - **Ciclo** (ejemplo con 2026): cuenta los gastos del 1 de diciembre de 2025 al 30 de noviembre de 2026. Se crea el

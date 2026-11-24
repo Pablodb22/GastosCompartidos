@@ -46,7 +46,7 @@ export function AddExpense(props: Props) {
         type="button"
         onClick={() => setOpen(true)}
         aria-label="Añadir gasto"
-        className="fixed right-4 bottom-[88px] z-30 flex h-14 w-14 items-center justify-center rounded-2xl bg-brand text-white shadow-[0_10px_22px_rgba(91,63,208,0.4)] transition hover:bg-brand-hover focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand md:hidden"
+        className="fixed right-4 bottom-[88px] z-30 flex h-14 w-14 items-center justify-center rounded-2xl bg-brand text-white shadow-[0_10px_22px_rgba(0,122,255,0.4)] transition hover:bg-brand-hover focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand md:hidden"
       >
         <IconPlus className="h-7 w-7" />
       </button>

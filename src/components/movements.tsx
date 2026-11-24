@@ -66,7 +66,7 @@ export function Movements({
       )}
 
       {expenses.length > 0 && (
-        <div className="mt-2.5 flex flex-wrap gap-1.5" role="group" aria-label="Filtrar por tipo">
+        <div className="-mx-1 mt-2.5 flex gap-1.5 overflow-x-auto px-1 pb-1" role="group" aria-label="Filtrar por tipo">
           {(
             [
               ["todos", "Todos los tipos"],
@@ -80,7 +80,7 @@ export function Movements({
               type="button"
               aria-pressed={kind === id}
               onClick={() => setKind(id)}
-              className="rounded-full border border-line bg-white px-3 py-1.5 text-[13px] font-semibold text-ink2 transition hover:bg-field aria-pressed:border-brand aria-pressed:bg-brand-soft aria-pressed:font-bold aria-pressed:text-brand focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand"
+              className="shrink-0 rounded-full border border-line bg-white px-3 py-1.5 text-[13px] font-semibold text-ink2 transition hover:bg-field aria-pressed:border-brand aria-pressed:bg-brand-soft aria-pressed:font-bold aria-pressed:text-brand focus-visible:outline-3 focus-visible:outline-offset-2 focus-visible:outline-brand"
             >
               {text}
             </button>
